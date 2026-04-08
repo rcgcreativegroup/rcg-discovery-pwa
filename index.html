@@ -1209,30 +1209,30 @@ async function sendToAssistant(userMessage) {
   showThinking();
 
   try {
-    const result = await callApi({
-      action: 'send_and_wait',
+    // Step 1 — add the message
+    await callApi({
+      action: 'add_message',
       threadId: state.threadId,
       clientType: state.clientType,
       message: userMessage
     });
 
-    hideThinking();
+    // Step 2 — start the run
+    const runResult = await callApi({
+      action: 'create_run',
+      threadId: state.threadId,
+      clientType: state.clientType
+    });
 
-    if (result.error === 'timeout') {
-      addMessage('assistant', 'The response took too long. Please tap the mic and try again.');
+    const runId = runResult.runId;
+    if (!runId) {
+      hideThinking();
+      addMessage('assistant', 'Could not start session. Please refresh and try again.');
       return;
     }
 
-    if (result.reply) {
-      addMessage('assistant', result.reply);
-      speakText(result.reply);
-      state.sessionData.transcript.push({ role: 'assistant', text: result.reply });
-
-      const text = result.reply.toLowerCase();
-      if (text.includes('ready for my results') || text.includes('discovery is complete') || text.includes('blueprint session')) {
-        document.getElementById('session-end-btn').style.display = 'block';
-      }
-    }
+    // Step 3 — poll from browser (no timeout limit)
+    await pollRun(runId);
 
   } catch (err) {
     hideThinking();
@@ -1242,68 +1242,72 @@ async function sendToAssistant(userMessage) {
 }
 
 async function pollRun(runId) {
-  const maxAttempts = 40;
+  const maxAttempts = 60;
   let attempts = 0;
 
   while (attempts < maxAttempts) {
     await sleep(3000);
     attempts++;
 
-    let run;
+    let result;
     try {
-      run = await callApi({ action: 'get_run', threadId: state.threadId, clientType: state.clientType, runId });
+      result = await callApi({
+        action: 'get_run',
+        threadId: state.threadId,
+        clientType: state.clientType,
+        runId
+      });
     } catch (err) {
       console.log('Poll attempt failed, retrying...', err);
       continue;
     }
 
-    console.log('Run status:', run.status, '| Attempt:', attempts);
+    const status = result.status;
+    console.log('Run status:', status, '| Attempt:', attempts);
 
-    if (!run.status) {
-      console.log('No status returned:', run);
+    if (!status) {
+      console.log('No status in response:', result);
       continue;
     }
 
-    if (run.status === 'completed') {
+    if (status === 'completed') {
       await getLatestMessage();
-      const lastMsg = state.messages[state.messages.length - 1];
-      if (lastMsg && lastMsg.role === 'assistant') {
-        const text = lastMsg.content.toLowerCase();
-        if (text.includes("ready for my results") || text.includes("discovery is complete") || text.includes("blueprint session")) {
-          document.getElementById('session-end-btn').style.display = 'block';
-        }
-      }
       return;
     }
 
-    if (run.status === 'in_progress' || run.status === 'queued') {
-      setVoiceStatus('thinking');
+    if (status === 'in_progress' || status === 'queued') {
       continue;
     }
 
-    if (run.status === 'failed' || run.status === 'cancelled' || run.status === 'expired') {
+    if (status === 'failed' || status === 'cancelled' || status === 'expired') {
       hideThinking();
-      addMessage('assistant', 'Something went wrong. Please refresh and try again.');
-      console.error('Run failed with status:', run.status, run.last_error);
+      addMessage('assistant', 'Something went wrong. Please tap the mic and try again.');
       return;
     }
   }
 
   hideThinking();
-  addMessage('assistant', 'The session took too long to respond. Please refresh and try again.');
+  addMessage('assistant', 'Taking longer than expected. Please tap the mic and try again.');
 }
 
 async function getLatestMessage() {
-  const data = await callApi({ action: 'get_messages', threadId: state.threadId, clientType: state.clientType });
+  const result = await callApi({
+    action: 'get_messages',
+    threadId: state.threadId,
+    clientType: state.clientType
+  });
   hideThinking();
 
-  if (data.data && data.data.length > 0) {
-    const msg = data.data[0];
-    const text = msg.content[0]?.text?.value || '';
+  const text = result.reply || '';
+  if (text) {
     addMessage('assistant', text);
     speakText(text);
-
     state.sessionData.transcript.push({ role: 'assistant', text });
+
+    const lower = text.toLowerCase();
+    if (lower.includes('ready for my results') || lower.includes('discovery is complete') || lower.includes('blueprint session')) {
+      document.getElementById('session-end-btn').style.display = 'block';
+    }
   }
 }
 
