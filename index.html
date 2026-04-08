@@ -1224,10 +1224,11 @@ async function sendToAssistant(userMessage) {
       clientType: state.clientType
     });
 
+    console.log('create_run result:', JSON.stringify(runResult));
     const runId = runResult.runId;
     if (!runId) {
       hideThinking();
-      addMessage('assistant', 'Could not start session. Please refresh and try again.');
+      addMessage('assistant', 'Could not start session. Error: ' + JSON.stringify(runResult));
       return;
     }
 
