@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RCG Discovery">
+<meta name="description" content="Robinson Creative Group — Unlock the Brand Inside You">
+<title>RCG Discovery</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0a0a0a;
+    --gold: #C9A96E;
+    --gold-light: #E8D5A3;
+    --gold-dim: rgba(201,169,110,0.15);
+    --gold-border: rgba(201,169,110,0.3);
+    --white: #faf8f4;
+    --muted: rgba(250,248,244,0.45);
+    --font-display: 'Cormorant Garamond', serif;
+    --font-body: 'Outfit', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ── ENTRY SCREEN ── */
+  #screen-entry {
+    gap: 0;
+  }
+
+  .entry-bg {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(201,169,110,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 20% 80%, rgba(201,169,110,0.04) 0%, transparent 60%),
+      var(--black);
+    z-index: 0;
+  }
+
+  .entry-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 420px;
+    gap: 0;
+  }
+
+  .rcg-mark {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: clamp(0.65rem, 2vw, 0.75rem);
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 2.5rem;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fadeUp 0.8s ease 0.2s forwards;
+  }
+
+  .entry-headline {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    line-height: 1.1;
+    text-align: center;
+    color: var(--white);
+    margin-bottom: 0.6rem;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: fadeUp 0.9s ease 0.4s forwards;
+  }
+
+  .entry-headline em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .entry-sub {
+    font-family: var(--font-body);
+    font-weight: 200;
+    font-size: clamp(0.75rem, 2.5vw, 0.85rem);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 4rem;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fadeUp 0.9s ease 0.55s forwards;
+  }
+
+  .divider-line {
+    width: 1px;
+    height: 48px;
+    background: linear-gradient(to bottom, transparent, var(--gold-border), transparent);
+    margin: 0 auto 4rem;
+    opacity: 0;
+    animation: fadeIn 1s ease 0.7s forwards;
+  }
+
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 0.9s ease 0.75s forwards;
+  }
+
+  .btn-discovery {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.4rem 1.8rem;
+    border: 1px solid var(--gold-border);
+    background: var(--gold-dim);
+    color: var(--white);
+    font-family: var(--font-body);
+    font-weight: 300;
+    font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-discovery::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(201,169,110,0.08);
+    transform: translateX(-100%);
+    transition: transform 0.4s ease;
+  }
+
+  .btn-discovery:hover::before,
+  .btn-discovery:active::before {
+    transform: translateX(0);
+  }
+
+  .btn-discovery:hover,
+  .btn-discovery:active {
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+
+  .btn-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    text-align: left;
+  }
+
+  .btn-type {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  .btn-cta {
+    font-size: clamp(0.85rem, 2.8vw, 1rem);
+    letter-spacing: 0.05em;
+    color: var(--white);
+    font-weight: 400;
+  }
+
+  .btn-arrow {
+    font-size: 1.2rem;
+    color: var(--gold);
+    transition: transform 0.3s ease;
+  }
+
+  .btn-discovery:hover .btn-arrow {
+    transform: translateX(4px);
+  }
+
+  .entry-footer {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-body);
+    font-weight: 200;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(250,248,244,0.2);
+    white-space: nowrap;
+    opacity: 0;
+    animation: fadeIn 1.2s ease 1.2s forwards;
+  }
+
+  /* ── SESSION SCREEN ── */
+  #screen-session {
+    flex-direction: column;
+    gap: 0;
+    background: var(--black);
+  }
+
+  .session-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem 2rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(201,169,110,0.1);
+    background: var(--black);
+    z-index: 10;
+  }
+
+  .session-mark {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-weight: 300;
+  }
+
+  .session-type-badge {
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--black);
+    background: var(--gold);
+    padding: 0.3rem 0.8rem;
+    font-weight: 400;
+  }
+
+  .session-body {
+    flex: 1;
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    padding: 6rem 0 10rem;
+    overflow-y: auto;
+    gap: 0;
+  }
+
+  .messages-container {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .message {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  .message-role {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 400;
+  }
+
+  .message-text {
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    font-weight: 300;
+    line-height: 1.65;
+    color: var(--white);
+  }
+
+  .message.user .message-role { color: var(--muted); }
+  .message.user .message-text {
+    color: rgba(250,248,244,0.75);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  .thinking-dots {
+    display: flex;
+    gap: 6px;
+    padding: 0.5rem 0;
+  }
+
+  .thinking-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--gold);
+    opacity: 0.4;
+    animation: pulse 1.4s ease infinite;
+  }
+
+  .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* ── VOICE CONTROL ── */
+  .voice-control {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem 2rem 2.5rem;
+    background: linear-gradient(to top, var(--black) 70%, transparent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    z-index: 10;
+  }
+
+  .voice-status {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 300;
+    min-height: 1rem;
+    transition: color 0.3s ease;
+  }
+
+  .voice-status.listening { color: var(--gold); }
+  .voice-status.speaking { color: rgba(250,248,244,0.6); }
+
+  .voice-visualizer {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 32px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .voice-visualizer.active { opacity: 1; }
+
+  .voice-bar {
+    width: 3px;
+    background: var(--gold);
+    border-radius: 2px;
+    height: 4px;
+    transition: height 0.1s ease;
+  }
+
+  .voice-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 1px solid var(--gold-border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .voice-btn::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+  }
+
+  .voice-btn.listening {
+    border-color: var(--gold);
+    background: var(--gold-dim);
+  }
+
+  .voice-btn.listening::before {
+    border-color: rgba(201,169,110,0.2);
+    animation: ripple 1.5s ease infinite;
+  }
+
+  .voice-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .session-end-btn {
+    background: none;
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(250,248,244,0.25);
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: color 0.3s ease;
+  }
+
+  .session-end-btn:hover { color: rgba(250,248,244,0.5); }
+
+  /* ── RESULTS SCREEN ── */
+  #screen-results {
+    justify-content: flex-start;
+    padding: 0;
+    overflow-y: auto;
+  }
+
+  .results-container {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 4rem 2rem 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .results-mark {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-weight: 300;
+    text-align: center;
+  }
+
+  .results-headline {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: clamp(1.8rem, 6vw, 2.6rem);
+    line-height: 1.15;
+    text-align: center;
+    color: var(--white);
+  }
+
+  .results-headline em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .results-divider {
+    width: 40px;
+    height: 1px;
+    background: var(--gold-border);
+    margin: 0 auto;
+  }
+
+  .results-intro {
+    font-family: var(--font-body);
+    font-weight: 300;
+    font-size: 0.9rem;
+    line-height: 1.75;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .results-highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border: 1px solid var(--gold-border);
+  }
+
+  .highlight-item {
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid rgba(201,169,110,0.1);
+    background: var(--gold-dim);
+  }
+
+  .highlight-item:last-child { border-bottom: none; }
+
+  .highlight-label {
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.4rem;
+    font-weight: 400;
+  }
+
+  .highlight-value {
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 3vw, 1.15rem);
+    font-weight: 300;
+    color: var(--white);
+    line-height: 1.5;
+  }
+
+  .next-steps-block {
+    border: 1px solid var(--gold-border);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .next-steps-label {
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 400;
+  }
+
+  .next-steps-text {
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 3vw, 1.1rem);
+    font-weight: 300;
+    line-height: 1.65;
+    color: var(--white);
+  }
+
+  .btn-book {
+    display: block;
+    width: 100%;
+    padding: 1.3rem 2rem;
+    background: var(--gold);
+    color: var(--black);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+  }
+
+  .btn-book:hover { background: var(--gold-light); }
+
+  /* ── ADMIN SCREEN ── */
+  #screen-admin {
+    justify-content: flex-start;
+    padding: 0;
+    overflow-y: auto;
+    background: #0d0d0d;
+  }
+
+  .admin-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(201,169,110,0.15);
+  }
+
+  .admin-title {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 300;
+    color: var(--white);
+  }
+
+  .admin-subtitle {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 300;
+    margin-top: 0.2rem;
+  }
+
+  .admin-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(201,169,110,0.1);
+  }
+
+  .stat-card {
+    background: #0d0d0d;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: var(--gold);
+  }
+
+  .session-card {
+    border: 1px solid rgba(201,169,110,0.15);
+    background: rgba(201,169,110,0.03);
+    overflow: hidden;
+  }
+
+  .session-card-header {
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(201,169,110,0.1);
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .session-card-header:hover { background: rgba(201,169,110,0.05); }
+
+  .session-client {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .session-name {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--white);
+  }
+
+  .session-meta {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    font-weight: 300;
+    text-transform: uppercase;
+  }
+
+  .session-badge {
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.7rem;
+    font-weight: 400;
+  }
+
+  .badge-founder {
+    background: rgba(201,169,110,0.12);
+    color: var(--gold);
+    border: 1px solid rgba(201,169,110,0.3);
+  }
+
+  .badge-artist {
+    background: rgba(139,26,52,0.15);
+    color: #C9748A;
+    border: 1px solid rgba(139,26,52,0.3);
+  }
+
+  .session-card-body {
+    display: none;
+    padding: 1.5rem;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .session-card-body.open { display: flex; }
+
+  .data-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .data-block-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 400;
+  }
+
+  .data-block-value {
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: rgba(250,248,244,0.8);
+    font-weight: 300;
+    background: rgba(0,0,0,0.3);
+    padding: 1rem;
+    border-left: 1px solid rgba(201,169,110,0.2);
+  }
+
+  .transcript-toggle {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(201,169,110,0.15);
+    transition: background 0.2s ease;
+  }
+
+  .transcript-toggle:hover { background: rgba(201,169,110,0.05); }
+
+  .transcript-toggle-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 400;
+  }
+
+  .transcript-toggle-arrow {
+    font-size: 0.7rem;
+    color: var(--muted);
+    transition: transform 0.3s ease;
+  }
+
+  .transcript-toggle.open .transcript-toggle-arrow { transform: rotate(180deg); }
+
+  .transcript-content {
+    display: none;
+    background: rgba(0,0,0,0.4);
+    padding: 1.2rem;
+    border: 1px solid rgba(201,169,110,0.08);
+    border-top: none;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    line-height: 1.75;
+    color: rgba(250,248,244,0.65);
+    font-weight: 300;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+
+  .transcript-content.open { display: block; }
+
+  .copy-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-copy {
+    flex: 1;
+    min-width: 140px;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(201,169,110,0.25);
+    background: transparent;
+    color: var(--gold);
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-weight: 400;
+    transition: all 0.25s ease;
+  }
+
+  .btn-copy:hover { background: var(--gold-dim); border-color: var(--gold); }
+  .btn-copy.copied { background: rgba(201,169,110,0.2); color: var(--gold-light); }
+
+  .btn-mark-reviewed {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid rgba(250,248,244,0.1);
+    background: transparent;
+    color: rgba(250,248,244,0.3);
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-weight: 300;
+    transition: all 0.25s ease;
+  }
+
+  .btn-mark-reviewed:hover { color: rgba(250,248,244,0.6); border-color: rgba(250,248,244,0.2); }
+  .btn-mark-reviewed.reviewed { color: #5a9e6f; border-color: rgba(90,158,111,0.3); }
+
+  /* ── ADMIN LOGIN ── */
+  #screen-admin-login {
+    gap: 2rem;
+  }
+
+  .login-mark {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-weight: 300;
+  }
+
+  .login-title {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: var(--white);
+    text-align: center;
+  }
+
+  .login-input {
+    width: 100%;
+    max-width: 320px;
+    padding: 1rem 1.2rem;
+    background: transparent;
+    border: 1px solid var(--gold-border);
+    color: var(--white);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.3s ease;
+  }
+
+  .login-input:focus { border-color: var(--gold); }
+  .login-input::placeholder { color: rgba(250,248,244,0.2); letter-spacing: 0.15em; }
+
+  .btn-login {
+    width: 100%;
+    max-width: 320px;
+    padding: 1rem;
+    background: var(--gold);
+    color: var(--black);
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-login:hover { background: var(--gold-light); }
+
+  .login-error {
+    font-size: 0.7rem;
+    color: #C9748A;
+    letter-spacing: 0.1em;
+    min-height: 1rem;
+    text-align: center;
+  }
+
+  .admin-nav-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: none;
+    border: 1px solid rgba(201,169,110,0.15);
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 100;
+  }
+
+  .admin-nav-btn:hover { color: var(--gold); border-color: var(--gold-border); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+  }
+
+  @keyframes ripple {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+
+  @keyframes barPulse {
+    0%, 100% { height: 4px; }
+    50% { height: 24px; }
+  }
+
+  /* ── UTILITY ── */
+  .hidden { display: none !important; }
+
+  ::-webkit-scrollbar { width: 2px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(201,169,110,0.2); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     ENTRY SCREEN
+══════════════════════════════════════ -->
+<div id="screen-entry" class="screen active">
+  <div class="entry-bg"></div>
+  <div class="entry-content">
+    <div class="rcg-mark">Robinson Creative Group</div>
+    <h1 class="entry-headline">Unlock the Brand<br><em>Inside You</em></h1>
+    <p class="entry-sub">Founder Identity Architecture™</p>
+    <div class="divider-line"></div>
+    <div class="btn-group">
+      <button class="btn-discovery" onclick="startSession('founder')">
+        <div class="btn-label">
+          <span class="btn-type">I am a Founder</span>
+          <span class="btn-cta">Start Your Discovery Session</span>
+        </div>
+        <span class="btn-arrow">→</span>
+      </button>
+      <button class="btn-discovery" onclick="startSession('artist')">
+        <div class="btn-label">
+          <span class="btn-type">I am an Artist</span>
+          <span class="btn-cta">Start Your Discovery Session</span>
+        </div>
+        <span class="btn-arrow">→</span>
+      </button>
+    </div>
+  </div>
+  <div class="entry-footer">Products are copyable. People are not.™</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SESSION SCREEN
+══════════════════════════════════════ -->
+<div id="screen-session" class="screen">
+  <div class="session-header">
+    <span class="session-mark">RCG Discovery</span>
+    <span id="session-type-badge" class="session-type-badge">Founder</span>
+  </div>
+
+  <div class="session-body" id="session-body">
+    <div class="messages-container" id="messages-container">
+      <!-- Messages render here -->
+    </div>
+  </div>
+
+  <div class="voice-control">
+    <div class="voice-visualizer" id="voice-visualizer">
+      <div class="voice-bar" id="bar1"></div>
+      <div class="voice-bar" id="bar2"></div>
+      <div class="voice-bar" id="bar3"></div>
+      <div class="voice-bar" id="bar4"></div>
+      <div class="voice-bar" id="bar5"></div>
+      <div class="voice-bar" id="bar6"></div>
+      <div class="voice-bar" id="bar7"></div>
+    </div>
+    <div class="voice-status" id="voice-status">Tap the mic to begin speaking</div>
+    <button class="voice-btn" id="voice-btn" onclick="toggleVoice()">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+    <button class="session-end-btn" id="session-end-btn" onclick="endSession()" style="display:none;">
+      Complete Discovery Session
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     RESULTS SCREEN
+══════════════════════════════════════ -->
+<div id="screen-results" class="screen">
+  <div class="results-container">
+    <div class="results-mark">Robinson Creative Group</div>
+    <h1 class="results-headline">Your S.O.U.L. Code<br>Discovery Is <em>Complete</em></h1>
+    <div class="results-divider"></div>
+    <p class="results-intro">
+      Your discovery session has been received. Travis Robinson will review your S.O.U.L. Code profile and reach out to schedule your Brand Growth Blueprint™ session.
+    </p>
+
+    <div class="results-highlights" id="results-highlights">
+      <!-- Populated dynamically -->
+    </div>
+
+    <div class="next-steps-block">
+      <div class="next-steps-label">Your Next Step</div>
+      <div class="next-steps-text">
+        Book your Brand Growth Blueprint™ session. This is where Travis reveals your S.O.U.L. Code™, confirms your Founder Archetype™, and begins building the strategy behind your brand.
+      </div>
+    </div>
+
+    <a href="https://calendly.com/travisrobinsonlive/30min" target="_blank" class="btn-book">
+      Book Your Blueprint Session →
+    </a>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ADMIN LOGIN SCREEN
+══════════════════════════════════════ -->
+<div id="screen-admin-login" class="screen">
+  <div class="login-mark">Robinson Creative Group</div>
+  <h2 class="login-title">Admin Access</h2>
+  <input
+    type="password"
+    class="login-input"
+    id="admin-password"
+    placeholder="Enter passphrase"
+    onkeydown="if(event.key==='Enter') adminLogin()"
+  />
+  <button class="btn-login" onclick="adminLogin()">Enter</button>
+  <div class="login-error" id="login-error"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ADMIN PANEL SCREEN
+══════════════════════════════════════ -->
+<div id="screen-admin" class="screen">
+  <div class="admin-container">
+    <div class="admin-header">
+      <div>
+        <div class="admin-title">Session Dashboard</div>
+        <div class="admin-subtitle">Robinson Creative Group · Admin</div>
+      </div>
+      <button onclick="showScreen('screen-entry')" style="background:none;border:none;color:var(--muted);font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;font-family:var(--font-body);">← Exit</button>
+    </div>
+
+    <div class="admin-stats" id="admin-stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Sessions</div>
+        <div class="stat-value" id="stat-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Founders</div>
+        <div class="stat-value" id="stat-founders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Artists</div>
+        <div class="stat-value" id="stat-artists">0</div>
+      </div>
+    </div>
+
+    <div id="sessions-list">
+      <!-- Session cards render here -->
+    </div>
+
+    <div id="no-sessions" class="hidden" style="text-align:center;padding:3rem;color:var(--muted);font-size:0.8rem;letter-spacing:0.1em;">
+      No sessions recorded yet.
+    </div>
+  </div>
+</div>
+
+<!-- Admin access button (hidden on entry, shown on session screens) -->
+<button class="admin-nav-btn hidden" id="admin-nav-btn" onclick="showScreen('screen-admin-login')">Admin</button>
+
+<script>
+// ══════════════════════════════════════
+// CONFIG — Replace with your values
+// ══════════════════════════════════════
+const CONFIG = {
+  openaiApiKey: 'YOUR_OPENAI_API_KEY',
+  founderAssistantId: 'asst_tA3jJ7ARTK4YwNNAM1m3efUJ',
+  artistAssistantId: 'asst_QIdgHVMGh0YsMJj9sb6p5Lsp',
+  makeWebhookUrl: 'YOUR_MAKE_WEBHOOK_URL',
+  adminPassword: 'rcg2026',  // Change this to something strong
+  calendlyUrl: 'https://calendly.com/travisrobinsonlive/30min'
+};
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let state = {
+  currentScreen: 'screen-entry',
+  clientType: null,
+  threadId: null,
+  messages: [],
+  isListening: false,
+  isSpeaking: false,
+  recognition: null,
+  synthesis: window.speechSynthesis,
+  sessionData: {},
+  sessionCount: 0,
+  sessions: []
+};
+
+// ══════════════════════════════════════
+// SCREEN NAVIGATION
+// ══════════════════════════════════════
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  state.currentScreen = screenId;
+
+  const adminBtn = document.getElementById('admin-nav-btn');
+  if (screenId === 'screen-entry') {
+    adminBtn.classList.add('hidden');
+  } else if (screenId === 'screen-admin' || screenId === 'screen-admin-login') {
+    adminBtn.classList.add('hidden');
+  } else {
+    adminBtn.classList.remove('hidden');
+  }
+}
+
+// ══════════════════════════════════════
+// SESSION START
+// ══════════════════════════════════════
+async function startSession(type) {
+  state.clientType = type;
+  state.messages = [];
+  state.sessionData = { type, startTime: new Date().toISOString(), transcript: [] };
+
+  document.getElementById('session-type-badge').textContent =
+    type === 'founder' ? 'Founder Session' : 'Artist Session';
+
+  showScreen('screen-session');
+  document.getElementById('messages-container').innerHTML = '';
+
+  await createThread();
+  await sendToAssistant("I'm ready to begin.");
+}
+
+// ══════════════════════════════════════
+// OPENAI THREAD MANAGEMENT
+// ══════════════════════════════════════
+async function createThread() {
+  try {
+    const res = await fetch('https://api.openai.com/v1/threads', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
+        'Content-Type': 'application/json',
+        'OpenAI-Beta': 'assistants=v2'
+      },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    state.threadId = data.id;
+  } catch (err) {
+    console.error('Thread creation failed:', err);
+  }
+}
+
+async function sendToAssistant(userMessage) {
+  if (!state.threadId) return;
+
+  const assistantId = state.clientType === 'founder'
+    ? CONFIG.founderAssistantId
+    : CONFIG.artistAssistantId;
+
+  setVoiceStatus('thinking');
+  showThinking();
+
+  try {
+    await fetch(`https://api.openai.com/v1/threads/${state.threadId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
+        'Content-Type': 'application/json',
+        'OpenAI-Beta': 'assistants=v2'
+      },
+      body: JSON.stringify({ role: 'user', content: userMessage })
+    });
+
+    const runRes = await fetch(`https://api.openai.com/v1/threads/${state.threadId}/runs`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
+        'Content-Type': 'application/json',
+        'OpenAI-Beta': 'assistants=v2'
+      },
+      body: JSON.stringify({ assistant_id: assistantId })
+    });
+
+    const run = await runRes.json();
+    await pollRun(run.id);
+
+  } catch (err) {
+    hideThinking();
+    console.error('Assistant call failed:', err);
+    addMessage('assistant', 'I apologize — there was a connection issue. Please try again.');
+  }
+}
+
+async function pollRun(runId) {
+  const maxAttempts = 60;
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    await sleep(2000);
+    attempts++;
+
+    const res = await fetch(`https://api.openai.com/v1/threads/${state.threadId}/runs/${runId}`, {
+      headers: {
+        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
+        'OpenAI-Beta': 'assistants=v2'
+      }
+    });
+
+    const run = await res.json();
+
+    if (run.status === 'completed') {
+      await getLatestMessage();
+
+      // Check if session complete trigger phrase appears
+      const lastMsg = state.messages[state.messages.length - 1];
+      if (lastMsg && lastMsg.role === 'assistant') {
+        const text = lastMsg.content.toLowerCase();
+        if (text.includes("ready for my results") || text.includes("discovery is complete") || text.includes("blueprint session")) {
+          document.getElementById('session-end-btn').style.display = 'block';
+        }
+      }
+      return;
+    }
+
+    if (run.status === 'failed' || run.status === 'cancelled') {
+      hideThinking();
+      addMessage('assistant', 'Something went wrong. Please try again.');
+      return;
+    }
+  }
+
+  hideThinking();
+}
+
+async function getLatestMessage() {
+  const res = await fetch(
+    `https://api.openai.com/v1/threads/${state.threadId}/messages?limit=1&order=desc`,
+    {
+      headers: {
+        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
+        'OpenAI-Beta': 'assistants=v2'
+      }
+    }
+  );
+
+  const data = await res.json();
+  hideThinking();
+
+  if (data.data && data.data.length > 0) {
+    const msg = data.data[0];
+    const text = msg.content[0]?.text?.value || '';
+    addMessage('assistant', text);
+    speakText(text);
+
+    state.sessionData.transcript.push({ role: 'assistant', text });
+  }
+}
+
+// ══════════════════════════════════════
+// VOICE — SPEECH RECOGNITION
+// ══════════════════════════════════════
+function toggleVoice() {
+  if (state.isListening) {
+    stopListening();
+  } else {
+    startListening();
+  }
+}
+
+function startListening() {
+  if (state.isSpeaking) {
+    state.synthesis.cancel();
+    state.isSpeaking = false;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Voice recognition is not supported in this browser. Please use Chrome or Safari.');
+    return;
+  }
+
+  state.recognition = new SpeechRecognition();
+  state.recognition.continuous = true;
+  state.recognition.interimResults = true;
+  state.recognition.lang = 'en-US';
+
+  let finalTranscript = '';
+  let silenceTimer = null;
+
+  state.recognition.onstart = () => {
+    state.isListening = true;
+    document.getElementById('voice-btn').classList.add('listening');
+    document.getElementById('voice-visualizer').classList.add('active');
+    setVoiceStatus('listening');
+    animateBars(true);
+  };
+
+  state.recognition.onresult = (event) => {
+    clearTimeout(silenceTimer);
+    let interim = '';
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript + ' ';
+      } else {
+        interim += event.results[i][0].transcript;
+      }
+    }
+
+    // Auto-send after 2 seconds of silence
+    silenceTimer = setTimeout(() => {
+      if (finalTranscript.trim()) {
+        stopListening();
+        const text = finalTranscript.trim();
+        finalTranscript = '';
+        addMessage('user', text);
+        state.sessionData.transcript.push({ role: 'user', text });
+        sendToAssistant(text);
+      }
+    }, 2000);
+  };
+
+  state.recognition.onerror = (event) => {
+    if (event.error !== 'no-speech') {
+      console.error('Recognition error:', event.error);
+    }
+    stopListening();
+  };
+
+  state.recognition.onend = () => {
+    if (state.isListening) {
+      state.recognition.start(); // Keep listening
+    }
+  };
+
+  state.recognition.start();
+}
+
+function stopListening() {
+  state.isListening = false;
+  if (state.recognition) {
+    state.recognition.stop();
+    state.recognition = null;
+  }
+  document.getElementById('voice-btn').classList.remove('listening');
+  document.getElementById('voice-visualizer').classList.remove('active');
+  animateBars(false);
+  setVoiceStatus('idle');
+}
+
+// ══════════════════════════════════════
+// VOICE — TEXT TO SPEECH
+// ══════════════════════════════════════
+function speakText(text) {
+  if (!state.synthesis) return;
+
+  state.synthesis.cancel();
+  state.isSpeaking = true;
+  setVoiceStatus('speaking');
+
+  // Clean text of markdown symbols
+  const clean = text.replace(/[#*_~`]/g, '').replace(/\n+/g, ' ');
+
+  const utterance = new SpeechSynthesisUtterance(clean);
+  utterance.rate = 0.92;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+
+  const voices = state.synthesis.getVoices();
+  const preferred = voices.find(v =>
+    v.name.includes('Samantha') ||
+    v.name.includes('Karen') ||
+    v.name.includes('Daniel') ||
+    v.name.includes('Google US English')
+  );
+  if (preferred) utterance.voice = preferred;
+
+  utterance.onend = () => {
+    state.isSpeaking = false;
+    setVoiceStatus('idle');
+  };
+
+  state.synthesis.speak(utterance);
+}
+
+// ══════════════════════════════════════
+// SESSION END
+// ══════════════════════════════════════
+async function endSession() {
+  stopListening();
+  if (state.synthesis) state.synthesis.cancel();
+
+  // Build session record
+  const sessionRecord = {
+    id: Date.now().toString(),
+    clientType: state.clientType,
+    date: new Date().toISOString(),
+    transcript: state.sessionData.transcript,
+    reviewed: false
+  };
+
+  // Save to localStorage (Firebase integration point)
+  saveSession(sessionRecord);
+
+  // Fire Make webhook for iPhone notification
+  fireWebhook(sessionRecord);
+
+  // Show results
+  showResultsScreen(sessionRecord);
+}
+
+function saveSession(record) {
+  const sessions = JSON.parse(localStorage.getItem('rcg_sessions') || '[]');
+  sessions.unshift(record);
+  localStorage.setItem('rcg_sessions', JSON.stringify(sessions));
+}
+
+async function fireWebhook(record) {
+  if (!CONFIG.makeWebhookUrl || CONFIG.makeWebhookUrl === 'YOUR_MAKE_WEBHOOK_URL') return;
+
+  try {
+    await fetch(CONFIG.makeWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_type: record.clientType,
+        session_id: record.id,
+        date: record.date,
+        message: `New ${record.clientType} discovery session completed`
+      })
+    });
+  } catch (err) {
+    console.error('Webhook failed:', err);
+  }
+}
+
+function showResultsScreen(record) {
+  const highlights = document.getElementById('results-highlights');
+  const typeLabel = record.clientType === 'founder' ? 'Founder' : 'Artist';
+  const msgCount = record.transcript.filter(m => m.role === 'user').length;
+
+  highlights.innerHTML = `
+    <div class="highlight-item">
+      <div class="highlight-label">Session Type</div>
+      <div class="highlight-value">${typeLabel} Identity Discovery</div>
+    </div>
+    <div class="highlight-item">
+      <div class="highlight-label">Discovery Depth</div>
+      <div class="highlight-value">${msgCount} questions explored</div>
+    </div>
+    <div class="highlight-item">
+      <div class="highlight-label">Status</div>
+      <div class="highlight-value">Received — Awaiting Blueprint Session</div>
+    </div>
+  `;
+
+  showScreen('screen-results');
+}
+
+// ══════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════
+function adminLogin() {
+  const pwd = document.getElementById('admin-password').value;
+  const err = document.getElementById('login-error');
+
+  if (pwd === CONFIG.adminPassword) {
+    err.textContent = '';
+    document.getElementById('admin-password').value = '';
+    loadAdminPanel();
+    showScreen('screen-admin');
+  } else {
+    err.textContent = 'Incorrect passphrase.';
+  }
+}
+
+function loadAdminPanel() {
+  const sessions = JSON.parse(localStorage.getItem('rcg_sessions') || '[]');
+  const founders = sessions.filter(s => s.clientType === 'founder').length;
+  const artists = sessions.filter(s => s.clientType === 'artist').length;
+
+  document.getElementById('stat-total').textContent = sessions.length;
+  document.getElementById('stat-founders').textContent = founders;
+  document.getElementById('stat-artists').textContent = artists;
+
+  const list = document.getElementById('sessions-list');
+  const noSessions = document.getElementById('no-sessions');
+
+  if (sessions.length === 0) {
+    list.innerHTML = '';
+    noSessions.classList.remove('hidden');
+    return;
+  }
+
+  noSessions.classList.add('hidden');
+  list.innerHTML = sessions.map((s, i) => buildSessionCard(s, i)).join('');
+}
+
+function buildSessionCard(session, index) {
+  const date = new Date(session.date).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+
+  const typeLabel = session.clientType === 'founder' ? 'Founder' : 'Artist';
+  const badgeClass = session.clientType === 'founder' ? 'badge-founder' : 'badge-artist';
+  const msgCount = session.transcript ? session.transcript.filter(m => m.role === 'user').length : 0;
+
+  const transcriptText = session.transcript
+    ? session.transcript.map(m => `${m.role.toUpperCase()}: ${m.text}`).join('\n\n')
+    : 'No transcript available.';
+
+  const reviewedClass = session.reviewed ? 'reviewed' : '';
+  const reviewedLabel = session.reviewed ? '✓ Reviewed' : 'Mark as Reviewed';
+
+  return `
+    <div class="session-card" id="card-${index}">
+      <div class="session-card-header" onclick="toggleCard(${index})">
+        <div class="session-client">
+          <div class="session-name">Session ${session.id.slice(-6)}</div>
+          <div class="session-meta">${date} · ${msgCount} exchanges</div>
+        </div>
+        <span class="session-badge ${badgeClass}">${typeLabel}</span>
+      </div>
+      <div class="session-card-body" id="body-${index}">
+        <div class="data-block">
+          <div class="data-block-label">Session ID</div>
+          <div class="data-block-value">${session.id}</div>
+        </div>
+        <div class="data-block">
+          <div class="data-block-label">Client Type</div>
+          <div class="data-block-value">${typeLabel} Discovery Session</div>
+        </div>
+        <div class="data-block">
+          <div class="data-block-label">Completed</div>
+          <div class="data-block-value">${date}</div>
+        </div>
+
+        <div>
+          <div class="transcript-toggle" id="toggle-${index}" onclick="toggleTranscript(${index})">
+            <span class="transcript-toggle-label">Full Session Transcript</span>
+            <span class="transcript-toggle-arrow">▼</span>
+          </div>
+          <div class="transcript-content" id="transcript-${index}">${transcriptText}</div>
+        </div>
+
+        <div class="copy-row">
+          <button class="btn-copy" id="copy-transcript-${index}" onclick="copyText('transcript-${index}', 'copy-transcript-${index}')">
+            Copy Full Transcript
+          </button>
+          <button class="btn-copy" id="copy-id-${index}" onclick="copyToClipboard('${session.id}', 'copy-id-${index}')">
+            Copy Session ID
+          </button>
+        </div>
+
+        <button class="btn-mark-reviewed ${reviewedClass}" id="reviewed-${index}" onclick="markReviewed(${index}, '${session.id}')">
+          ${reviewedLabel}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function toggleCard(index) {
+  const body = document.getElementById(`body-${index}`);
+  body.classList.toggle('open');
+}
+
+function toggleTranscript(index) {
+  const content = document.getElementById(`transcript-${index}`);
+  const toggle = document.getElementById(`toggle-${index}`);
+  content.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+function copyText(sourceId, btnId) {
+  const text = document.getElementById(sourceId).textContent;
+  copyToClipboard(text, btnId);
+}
+
+function copyToClipboard(text, btnId) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(btnId);
+    const original = btn.textContent;
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+function markReviewed(index, sessionId) {
+  const sessions = JSON.parse(localStorage.getItem('rcg_sessions') || '[]');
+  const session = sessions.find(s => s.id === sessionId);
+  if (session) {
+    session.reviewed = !session.reviewed;
+    localStorage.setItem('rcg_sessions', JSON.stringify(sessions));
+    const btn = document.getElementById(`reviewed-${index}`);
+    btn.classList.toggle('reviewed');
+    btn.textContent = session.reviewed ? '✓ Reviewed' : 'Mark as Reviewed';
+  }
+}
+
+// ══════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════
+function addMessage(role, text) {
+  const container = document.getElementById('messages-container');
+  state.messages.push({ role, content: text });
+
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+  div.innerHTML = `
+    <div class="message-role">${role === 'assistant' ? 'RCG Guide' : 'You'}</div>
+    <div class="message-text">${text.replace(/\n/g, '<br>')}</div>
+  `;
+
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+
+  // Show end session button after 5+ user messages
+  const userMsgs = state.messages.filter(m => m.role === 'user').length;
+  if (userMsgs >= 5) {
+    document.getElementById('session-end-btn').style.display = 'block';
+  }
+}
+
+function showThinking() {
+  const container = document.getElementById('messages-container');
+  const div = document.createElement('div');
+  div.id = 'thinking-indicator';
+  div.className = 'message assistant';
+  div.innerHTML = `
+    <div class="message-role">RCG Guide</div>
+    <div class="thinking-dots">
+      <span></span><span></span><span></span>
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function hideThinking() {
+  const el = document.getElementById('thinking-indicator');
+  if (el) el.remove();
+}
+
+function setVoiceStatus(status) {
+  const el = document.getElementById('voice-status');
+  el.className = 'voice-status';
+
+  const labels = {
+    idle: 'Tap the mic to speak',
+    listening: 'Listening...',
+    thinking: 'Processing your response...',
+    speaking: 'Speaking — tap mic to interrupt'
+  };
+
+  el.textContent = labels[status] || '';
+  if (status === 'listening') el.classList.add('listening');
+  if (status === 'speaking') el.classList.add('speaking');
+}
+
+function animateBars(active) {
+  const bars = document.querySelectorAll('.voice-bar');
+  bars.forEach((bar, i) => {
+    if (active) {
+      bar.style.animation = `barPulse ${0.6 + Math.random() * 0.6}s ease ${i * 0.08}s infinite`;
+    } else {
+      bar.style.animation = 'none';
+      bar.style.height = '4px';
+    }
+  });
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Load voices for speech synthesis
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}
+
+// Handle admin shortcut (triple tap logo area)
+let tapCount = 0;
+document.querySelector('.entry-footer')?.addEventListener('click', () => {
+  tapCount++;
+  if (tapCount >= 3) {
+    tapCount = 0;
+    showScreen('screen-admin-login');
+  }
+  setTimeout(() => { tapCount = 0; }, 800);
+});
+</script>
+</body>
+</html>
