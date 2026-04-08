@@ -1120,16 +1120,22 @@
 
 <script>
 // ══════════════════════════════════════
-// CONFIG — Replace with your values
+// CONFIG — All secrets live in Netlify
 // ══════════════════════════════════════
 const CONFIG = {
-  openaiApiKey: 'YOUR_OPENAI_API_KEY',
-  founderAssistantId: 'asst_tA3jJ7ARTK4YwNNAM1m3efUJ',
-  artistAssistantId: 'asst_QIdgHVMGh0YsMJj9sb6p5Lsp',
-  makeWebhookUrl: 'YOUR_MAKE_WEBHOOK_URL',
-  adminPassword: 'rcg2026',  // Change this to something strong
+  apiBase: '/.netlify/functions/assistant',
+  adminPassword: 'rcg2026',
   calendlyUrl: 'https://calendly.com/travisrobinsonlive/30min'
 };
+
+async function callApi(payload) {
+  const res = await fetch(CONFIG.apiBase, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
 
 // ══════════════════════════════════════
 // STATE
@@ -1189,16 +1195,7 @@ async function startSession(type) {
 // ══════════════════════════════════════
 async function createThread() {
   try {
-    const res = await fetch('https://api.openai.com/v1/threads', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2'
-      },
-      body: JSON.stringify({})
-    });
-    const data = await res.json();
+    const data = await callApi({ action: 'create_thread', clientType: state.clientType });
     state.threadId = data.id;
   } catch (err) {
     console.error('Thread creation failed:', err);
@@ -1208,37 +1205,13 @@ async function createThread() {
 async function sendToAssistant(userMessage) {
   if (!state.threadId) return;
 
-  const assistantId = state.clientType === 'founder'
-    ? CONFIG.founderAssistantId
-    : CONFIG.artistAssistantId;
-
   setVoiceStatus('thinking');
   showThinking();
 
   try {
-    await fetch(`https://api.openai.com/v1/threads/${state.threadId}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2'
-      },
-      body: JSON.stringify({ role: 'user', content: userMessage })
-    });
-
-    const runRes = await fetch(`https://api.openai.com/v1/threads/${state.threadId}/runs`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2'
-      },
-      body: JSON.stringify({ assistant_id: assistantId })
-    });
-
-    const run = await runRes.json();
+    await callApi({ action: 'add_message', threadId: state.threadId, clientType: state.clientType, message: userMessage });
+    const run = await callApi({ action: 'create_run', threadId: state.threadId, clientType: state.clientType });
     await pollRun(run.id);
-
   } catch (err) {
     hideThinking();
     console.error('Assistant call failed:', err);
@@ -1254,14 +1227,7 @@ async function pollRun(runId) {
     await sleep(2000);
     attempts++;
 
-    const res = await fetch(`https://api.openai.com/v1/threads/${state.threadId}/runs/${runId}`, {
-      headers: {
-        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
-        'OpenAI-Beta': 'assistants=v2'
-      }
-    });
-
-    const run = await res.json();
+    const run = await callApi({ action: 'get_run', threadId: state.threadId, clientType: state.clientType, runId });
 
     if (run.status === 'completed') {
       await getLatestMessage();
@@ -1288,17 +1254,7 @@ async function pollRun(runId) {
 }
 
 async function getLatestMessage() {
-  const res = await fetch(
-    `https://api.openai.com/v1/threads/${state.threadId}/messages?limit=1&order=desc`,
-    {
-      headers: {
-        'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
-        'OpenAI-Beta': 'assistants=v2'
-      }
-    }
-  );
-
-  const data = await res.json();
+  const data = await callApi({ action: 'get_messages', threadId: state.threadId, clientType: state.clientType });
   hideThinking();
 
   if (data.data && data.data.length > 0) {
@@ -1471,19 +1427,8 @@ function saveSession(record) {
 }
 
 async function fireWebhook(record) {
-  if (!CONFIG.makeWebhookUrl || CONFIG.makeWebhookUrl === 'YOUR_MAKE_WEBHOOK_URL') return;
-
   try {
-    await fetch(CONFIG.makeWebhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_type: record.clientType,
-        session_id: record.id,
-        date: record.date,
-        message: `New ${record.clientType} discovery session completed`
-      })
-    });
+    await callApi({ action: 'notify', threadId: record.id, clientType: record.clientType });
   } catch (err) {
     console.error('Webhook failed:', err);
   }
