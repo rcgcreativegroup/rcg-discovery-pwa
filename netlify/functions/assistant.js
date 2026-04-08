@@ -39,61 +39,46 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { action, threadId, clientType, message } = JSON.parse(event.body);
+    const { action, threadId, clientType, message, runId } = JSON.parse(event.body);
     const assistantId = clientType === 'founder' ? FOUNDER_ASSISTANT_ID : ARTIST_ASSISTANT_ID;
 
-    // ── CREATE THREAD ──
+    // CREATE THREAD
     if (action === 'create_thread') {
       const thread = await openaiCall('/threads', 'POST', {});
-      return { statusCode: 200, headers, body: JSON.stringify(thread) };
+      return { statusCode: 200, headers, body: JSON.stringify({ id: thread.id }) };
     }
 
-    // ── SEND MESSAGE + RUN + WAIT + RETURN RESPONSE ──
-    // One call handles everything — no timeout issues
-    if (action === 'send_and_wait') {
-      // Add user message
-      await openaiCall(`/threads/${threadId}/messages`, 'POST', {
+    // ADD MESSAGE ONLY
+    if (action === 'add_message') {
+      const msg = await openaiCall(`/threads/${threadId}/messages`, 'POST', {
         role: 'user',
         content: message
       });
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, id: msg.id }) };
+    }
 
-      // Start run
+    // START RUN ONLY
+    if (action === 'create_run') {
       const run = await openaiCall(`/threads/${threadId}/runs`, 'POST', {
         assistant_id: assistantId
       });
-
-      // Poll until complete (max 20 seconds)
-      let status = run.status;
-      let attempts = 0;
-      let currentRun = run;
-
-      while (attempts < 18 && status !== 'completed' && status !== 'failed' && status !== 'cancelled' && status !== 'expired') {
-        await sleep(1500);
-        attempts++;
-        currentRun = await openaiCall(`/threads/${threadId}/runs/${run.id}`);
-        status = currentRun.status;
-      }
-
-      if (status !== 'completed') {
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ error: 'timeout', status, attempts })
-        };
-      }
-
-      // Get the assistant response
-      const messages = await openaiCall(`/threads/${threadId}/messages?limit=1&order=desc`);
-      const reply = messages.data?.[0]?.content?.[0]?.text?.value || '';
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ reply, status: 'completed' })
-      };
+      return { statusCode: 200, headers, body: JSON.stringify({ runId: run.id, status: run.status }) };
     }
 
-    // ── NOTIFY MAKE ──
+    // POLL RUN STATUS ONLY — lightweight, fast
+    if (action === 'get_run') {
+      const run = await openaiCall(`/threads/${threadId}/runs/${runId}`);
+      return { statusCode: 200, headers, body: JSON.stringify({ status: run.status, runId: run.id }) };
+    }
+
+    // GET LATEST MESSAGE
+    if (action === 'get_messages') {
+      const messages = await openaiCall(`/threads/${threadId}/messages?limit=1&order=desc`);
+      const reply = messages.data?.[0]?.content?.[0]?.text?.value || '';
+      return { statusCode: 200, headers, body: JSON.stringify({ reply }) };
+    }
+
+    // NOTIFY MAKE — iPhone ping
     if (action === 'notify') {
       if (MAKE_WEBHOOK_URL) {
         await fetch(MAKE_WEBHOOK_URL, {
