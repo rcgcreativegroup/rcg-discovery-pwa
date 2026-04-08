@@ -1151,6 +1151,7 @@ let state = {
   messages: [],
   isListening: false,
   isSpeaking: false,
+  pendingSpeech: null,
   recognition: null,
   synthesis: window.speechSynthesis,
   sessionData: {},
@@ -1313,7 +1314,8 @@ async function getLatestMessage() {
   const text = result.reply || '';
   if (text) {
     addMessage('assistant', text);
-    speakText(text);
+    state.pendingSpeech = text;
+    setVoiceStatus('tap-to-hear');
     state.sessionData.transcript.push({ role: 'assistant', text });
 
     const lower = text.toLowerCase();
@@ -1335,6 +1337,14 @@ function toggleVoice() {
 }
 
 function startListening() {
+  // If there is pending speech, play it from within this user gesture, then auto-listen
+  if (state.pendingSpeech) {
+    const text = state.pendingSpeech;
+    state.pendingSpeech = null;
+    speakText(text, () => startListening());
+    return;
+  }
+
   if (state.isSpeaking) {
     state.synthesis.cancel();
     state.isSpeaking = false;
@@ -1418,7 +1428,7 @@ function stopListening() {
 // ══════════════════════════════════════
 // VOICE — TEXT TO SPEECH
 // ══════════════════════════════════════
-function speakText(text) {
+function speakText(text, onComplete) {
   if (!state.synthesis) return;
 
   state.synthesis.cancel();
@@ -1445,6 +1455,7 @@ function speakText(text) {
   utterance.onend = () => {
     state.isSpeaking = false;
     setVoiceStatus('idle');
+    if (onComplete) onComplete();
   };
 
   state.synthesis.speak(utterance);
@@ -1709,6 +1720,7 @@ function setVoiceStatus(status) {
 
   const labels = {
     idle: 'Tap the mic to speak',
+    'tap-to-hear': 'Tap the mic to hear response',
     listening: 'Listening...',
     thinking: 'Processing your response...',
     speaking: 'Speaking — tap mic to interrupt'
