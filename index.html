@@ -1196,7 +1196,11 @@ async function startSession(type) {
 async function createThread() {
   try {
     const data = await callApi({ action: 'create_thread', clientType: state.clientType });
+    console.log('Thread creation response:', JSON.stringify(data));
     state.threadId = data.id;
+    if (!state.threadId) {
+      console.error('Thread ID missing from response:', data);
+    }
   } catch (err) {
     console.error('Thread creation failed:', err);
   }
@@ -1218,6 +1222,7 @@ async function sendToAssistant(userMessage) {
     });
 
     // Step 2 — start the run
+    console.log('Starting run with threadId:', state.threadId, 'clientType:', state.clientType);
     const runResult = await callApi({
       action: 'create_run',
       threadId: state.threadId,
