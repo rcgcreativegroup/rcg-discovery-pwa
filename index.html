@@ -1209,9 +1209,31 @@ async function sendToAssistant(userMessage) {
   showThinking();
 
   try {
-    await callApi({ action: 'add_message', threadId: state.threadId, clientType: state.clientType, message: userMessage });
-    const run = await callApi({ action: 'create_run', threadId: state.threadId, clientType: state.clientType });
-    await pollRun(run.id);
+    const result = await callApi({
+      action: 'send_and_wait',
+      threadId: state.threadId,
+      clientType: state.clientType,
+      message: userMessage
+    });
+
+    hideThinking();
+
+    if (result.error === 'timeout') {
+      addMessage('assistant', 'The response took too long. Please tap the mic and try again.');
+      return;
+    }
+
+    if (result.reply) {
+      addMessage('assistant', result.reply);
+      speakText(result.reply);
+      state.sessionData.transcript.push({ role: 'assistant', text: result.reply });
+
+      const text = result.reply.toLowerCase();
+      if (text.includes('ready for my results') || text.includes('discovery is complete') || text.includes('blueprint session')) {
+        document.getElementById('session-end-btn').style.display = 'block';
+      }
+    }
+
   } catch (err) {
     hideThinking();
     console.error('Assistant call failed:', err);
