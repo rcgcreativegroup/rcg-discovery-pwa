@@ -1220,19 +1220,30 @@ async function sendToAssistant(userMessage) {
 }
 
 async function pollRun(runId) {
-  const maxAttempts = 60;
+  const maxAttempts = 40;
   let attempts = 0;
 
   while (attempts < maxAttempts) {
-    await sleep(2000);
+    await sleep(3000);
     attempts++;
 
-    const run = await callApi({ action: 'get_run', threadId: state.threadId, clientType: state.clientType, runId });
+    let run;
+    try {
+      run = await callApi({ action: 'get_run', threadId: state.threadId, clientType: state.clientType, runId });
+    } catch (err) {
+      console.log('Poll attempt failed, retrying...', err);
+      continue;
+    }
+
+    console.log('Run status:', run.status, '| Attempt:', attempts);
+
+    if (!run.status) {
+      console.log('No status returned:', run);
+      continue;
+    }
 
     if (run.status === 'completed') {
       await getLatestMessage();
-
-      // Check if session complete trigger phrase appears
       const lastMsg = state.messages[state.messages.length - 1];
       if (lastMsg && lastMsg.role === 'assistant') {
         const text = lastMsg.content.toLowerCase();
@@ -1243,14 +1254,21 @@ async function pollRun(runId) {
       return;
     }
 
-    if (run.status === 'failed' || run.status === 'cancelled') {
+    if (run.status === 'in_progress' || run.status === 'queued') {
+      setVoiceStatus('thinking');
+      continue;
+    }
+
+    if (run.status === 'failed' || run.status === 'cancelled' || run.status === 'expired') {
       hideThinking();
-      addMessage('assistant', 'Something went wrong. Please try again.');
+      addMessage('assistant', 'Something went wrong. Please refresh and try again.');
+      console.error('Run failed with status:', run.status, run.last_error);
       return;
     }
   }
 
   hideThinking();
+  addMessage('assistant', 'The session took too long to respond. Please refresh and try again.');
 }
 
 async function getLatestMessage() {
