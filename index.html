@@ -1134,6 +1134,10 @@ async function callApi(payload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error('Server error ' + res.status + ': ' + text.slice(0, 300));
+  }
   return res.json();
 }
 
