@@ -4,6 +4,24 @@ const FOUNDER_ASSISTANT_ID = process.env.FOUNDER_ASSISTANT_ID;
 const ARTIST_ASSISTANT_ID = process.env.ARTIST_ASSISTANT_ID;
 const OPENAI_BASE = 'https://api.openai.com/v1';
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function openaiCall(path, method = 'GET', body = null) {
+  const options = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+      'OpenAI-Beta': 'assistants=v2'
+    }
+  };
+  if (body) options.body = JSON.stringify(body);
+  const res = await fetch(`${OPENAI_BASE}${path}`, options);
+  return res.json();
+}
+
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -21,80 +39,78 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { action, threadId, clientType, message, runId } = JSON.parse(event.body);
-
+    const { action, threadId, clientType, message } = JSON.parse(event.body);
     const assistantId = clientType === 'founder' ? FOUNDER_ASSISTANT_ID : ARTIST_ASSISTANT_ID;
 
-    let url, method, body;
-
-    switch (action) {
-
-      case 'create_thread':
-        url = `${OPENAI_BASE}/threads`;
-        method = 'POST';
-        body = JSON.stringify({});
-        break;
-
-      case 'add_message':
-        url = `${OPENAI_BASE}/threads/${threadId}/messages`;
-        method = 'POST';
-        body = JSON.stringify({ role: 'user', content: message });
-        break;
-
-      case 'create_run':
-        url = `${OPENAI_BASE}/threads/${threadId}/runs`;
-        method = 'POST';
-        body = JSON.stringify({ assistant_id: assistantId });
-        break;
-
-      case 'get_run':
-        url = `${OPENAI_BASE}/threads/${threadId}/runs/${runId}`;
-        method = 'GET';
-        body = null;
-        break;
-
-      case 'get_messages':
-        url = `${OPENAI_BASE}/threads/${threadId}/messages?limit=1&order=desc`;
-        method = 'GET';
-        body = null;
-        break;
-
-      case 'notify':
-        if (MAKE_WEBHOOK_URL) {
-          await fetch(MAKE_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              client_type: clientType,
-              session_id: threadId,
-              date: new Date().toISOString(),
-              message: `New ${clientType} discovery session completed`
-            })
-          });
-        }
-        return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-
-      default:
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
+    // ── CREATE THREAD ──
+    if (action === 'create_thread') {
+      const thread = await openaiCall('/threads', 'POST', {});
+      return { statusCode: 200, headers, body: JSON.stringify(thread) };
     }
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2'
-      },
-      ...(body ? { body } : {})
-    });
+    // ── SEND MESSAGE + RUN + WAIT + RETURN RESPONSE ──
+    // One call handles everything — no timeout issues
+    if (action === 'send_and_wait') {
+      // Add user message
+      await openaiCall(`/threads/${threadId}/messages`, 'POST', {
+        role: 'user',
+        content: message
+      });
 
-    const data = await response.json();
+      // Start run
+      const run = await openaiCall(`/threads/${threadId}/runs`, 'POST', {
+        assistant_id: assistantId
+      });
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(data)
-    };
+      // Poll until complete (max 20 seconds)
+      let status = run.status;
+      let attempts = 0;
+      let currentRun = run;
+
+      while (attempts < 18 && status !== 'completed' && status !== 'failed' && status !== 'cancelled' && status !== 'expired') {
+        await sleep(1500);
+        attempts++;
+        currentRun = await openaiCall(`/threads/${threadId}/runs/${run.id}`);
+        status = currentRun.status;
+      }
+
+      if (status !== 'completed') {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ error: 'timeout', status, attempts })
+        };
+      }
+
+      // Get the assistant response
+      const messages = await openaiCall(`/threads/${threadId}/messages?limit=1&order=desc`);
+      const reply = messages.data?.[0]?.content?.[0]?.text?.value || '';
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ reply, status: 'completed' })
+      };
+    }
+
+    // ── NOTIFY MAKE ──
+    if (action === 'notify') {
+      if (MAKE_WEBHOOK_URL) {
+        await fetch(MAKE_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_type: clientType,
+            session_id: threadId,
+            date: new Date().toISOString(),
+            message: `New ${clientType} discovery session completed`
+          })
+        });
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 
   } catch (error) {
     return {
