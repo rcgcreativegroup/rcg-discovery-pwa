@@ -1204,9 +1204,11 @@ async function createThread() {
     state.threadId = data.id;
     if (!state.threadId) {
       console.error('Thread ID missing from response:', data);
+      addMessage('assistant', 'Setup error: ' + JSON.stringify(data));
     }
   } catch (err) {
     console.error('Thread creation failed:', err);
+    addMessage('assistant', 'Setup failed: ' + err.message);
   }
 }
 
@@ -1247,7 +1249,7 @@ async function sendToAssistant(userMessage) {
   } catch (err) {
     hideThinking();
     console.error('Assistant call failed:', err);
-    addMessage('assistant', 'I apologize — there was a connection issue. Please try again.');
+    addMessage('assistant', 'Error: ' + err.message);
   }
 }
 
