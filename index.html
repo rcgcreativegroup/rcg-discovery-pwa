@@ -1798,7 +1798,7 @@ async function getLatestMessage() {
   if (!text) return;
 
   // ── CHECKPOINT 1: RAW FINAL ASSISTANT RESPONSE ───────────────────────────
-  console.group("%c[RCG DEBUG] CHECKPOINT 1 — RAW FINAL ASSISTANT RESPONSE","color:#c9a84c;font-weight:bold");
+  console.group("%c[RCG DEBUG] CHECKPOINT 1 — RAW","color:#c9a84c;font-weight:bold");
   console.log("runId:", state.activeRunId, "| threadId:", state.threadId);
   console.log("reportTriggered:", state.reportTriggered, "| reportPhaseActive:", state.reportPhaseActive);
   console.log("rawFinalAssistantText:", text);
@@ -1833,12 +1833,13 @@ async function getLatestMessage() {
     state.pendingSpeech = null;
     state.isSpeaking = false;
 
-    // CHECKPOINT 2: INTERNAL BLOCK SPLIT
+    // Split client output from internal block — preserve existing logic exactly
     var blockIdx = text.indexOf('INTERNAL DATA BLOCK');
     var lineStart = text.lastIndexOf('\n', blockIdx);
     var cutAt = lineStart !== -1 ? lineStart : blockIdx;
     var clientOutputRaw = blockIdx !== -1 ? text.slice(0, cutAt) : text;
     var internalOutputRaw = blockIdx !== -1 ? text.slice(blockIdx) : '';
+
     console.group("%c[RCG DEBUG] CHECKPOINT 2 — BLOCK SPLIT","color:#c9a84c;font-weight:bold");
     console.log("splitFound:", blockIdx !== -1, "| blockIdx:", blockIdx, "| cutAt:", cutAt);
     console.log("clientOutputRaw (first 300):", clientOutputRaw.slice(0, 300));
@@ -1847,7 +1848,7 @@ async function getLatestMessage() {
 
     var clientDisplay = clientOutputRaw.trim();
 
-    // CHECKPOINT 3: CLOSE MESSAGE DETECTION
+    // ── CHECKPOINT 3: CLOSE MESSAGE DETECTION ───────────────────────────────
     var CLOSE_MSG = "Your session is complete. Your results have been sent to your email.";
     var closeMsgIdx = clientDisplay.indexOf(CLOSE_MSG);
     var closeInFull = text.indexOf(CLOSE_MSG);
@@ -1857,22 +1858,11 @@ async function getLatestMessage() {
     console.log("textBeforeClose (first 300):", textBeforeClose.slice(0, 300));
     console.groupEnd();
 
-    // CHECKPOINT 4: CLIENT OUTPUT VALIDATION
-    var hasSoul = /s\.?o\.?u\.?l/i.test(clientDisplay);
-    var hasEmail = /email|results have been sent|your identity/i.test(clientDisplay);
-    console.group("%c[RCG DEBUG] CHECKPOINT 4 — CLIENT VALIDATION","color:#c9a84c;font-weight:bold");
-    console.log("clientOutputLength:", clientDisplay.length);
-    console.log("clientOutputPreview:", clientDisplay.slice(0, 500));
-    console.log("hasSoulScoreHeader:", hasSoul, "| hasEmailSection:", hasEmail);
-    console.groupEnd();
-
-    // CHECKPOINT 5 + 8: RENDER GUARD — fail if client output is missing
+    // ── CHECKPOINT 4: LENGTH RENDER GUARD ───────────────────────────────────
     var clientIsEmpty = (clientDisplay.length < 100) ||
                         (textBeforeClose.length < 100 && closeInFull !== -1);
     if (clientIsEmpty) {
-      console.error("[RCG DEBUG] REPORT_RENDER_FAILURE — client output missing or too short");
-      console.log("clientOutputLength:", clientDisplay.length);
-      console.log("rawFinalAssistantText preserved:", text);
+      console.error("[RCG] RENDER FAILURE — client output missing or too short. Length:", clientDisplay.length);
       window._rcgDebugRawReport = text;
       addMessage('assistant',
         'Your report did not render correctly. Your session data has been preserved. ' +
@@ -1881,34 +1871,58 @@ async function getLatestMessage() {
       return;
     }
 
-    // CHECKPOINT 6: STRIP SAFETY
-    console.group("%c[RCG DEBUG] CHECKPOINT 6 — STRIP SAFETY","color:#c9a84c;font-weight:bold");
-    console.log("markerAtStart:", blockIdx === 0, "| clientLength:", clientDisplay.length);
-    console.log("stripCorrect:", blockIdx > 0 && clientDisplay.length > 0);
-    console.groupEnd();
+    // ── PRE-RENDER ANCHOR VALIDATION (requirement 2) ────────────────────────
+    var REQUIRED_ANCHORS = [
+      'Your S.O.U.L Identity Score™',
+      'S — Story Clarity',
+      'O — Origin Depth',
+      'U — Uniqueness Signal',
+      'L — Legacy Intention',
+      'YOUR FOUNDER ARCHETYPE SIGNAL™',
+      'WHAT WE NEED TO TIGHTEN'
+    ];
+    var missingAnchors = REQUIRED_ANCHORS.filter(function(anchor) {
+      return clientDisplay.indexOf(anchor) === -1;
+    });
+    if (missingAnchors.length > 0) {
+      console.warn("[RCG] ANCHOR VALIDATION FAILED — missing:", missingAnchors);
+      window._rcgDebugRawReport = text;
+      // Only retry once per session
+      if (!state._reportRetried) {
+        state._reportRetried = true;
+        addMessage('assistant', 'Your report is being finalized. Please wait a moment.');
+        // Retry generation after a short delay
+        setTimeout(function() {
+          sendToAssistant('Generate Report Now');
+        }, 3000);
+      } else {
+        console.error("[RCG] Anchor validation failed on retry — rendering anyway to not block user");
+        addReportMessage(clientDisplay);
+        var parsed2 = parseReport(text);
+        await autoEndSession(parsed2);
+      }
+      return;
+    }
 
-    // CHECKPOINT 7: FINAL UI STATE
-    var vBtn = document.getElementById("voice-btn");
-    var isCloseOnly = (clientDisplay === CLOSE_MSG) || (textBeforeClose.trim().length < 50);
-    console.group("%c[RCG DEBUG] CHECKPOINT 7 — FINAL UI STATE","color:#c9a84c;font-weight:bold");
-    console.log("finalVisibleTextLength:", clientDisplay.length);
+    console.group("%c[RCG DEBUG] CHECKPOINT 6 — FINAL UI STATE","color:#c9a84c;font-weight:bold");
+    console.log("clientOutputLength:", clientDisplay.length);
+    console.log("anchorValidation: passed — all", REQUIRED_ANCHORS.length, "anchors present");
     console.log("finalVisibleTextPreview:", clientDisplay.slice(0, 500));
-    console.log("renderedCloseMessageOnly:", isCloseOnly);
-    console.log("sessionMarkedComplete:", state.reportTriggered, "| micDisabled:", vBtn ? vBtn.disabled : "n/a");
+    console.log("sessionMarkedComplete:", state.reportTriggered);
     console.groupEnd();
 
-    // Render formatted client output, parse internal block silently, end session
+    // Render formatted client output; route internal block silently to parseReport
     addReportMessage(clientDisplay);
     var parsed = parseReport(text);
     await autoEndSession(parsed);
     return;
   }
 
-  // ── Normal discovery message — with dedup guard ───────────────────────────
-  // Guard: skip if the last assistant message is identical (stale poll artifact)
+  // ── Normal discovery message — with role-based dedup guard (requirement 3) ─
+  // Select only the latest assistant turn; skip if identical to last rendered
   var lastAsst = state.messages.filter(function(m) { return m.role === "assistant"; }).pop();
   if (lastAsst && lastAsst.content === text) {
-    console.warn("[RCG] Dedup: skipping repeated assistant message in discovery path");
+    console.warn("[RCG] Dedup: skipping repeated assistant message (same content as last rendered)");
     return;
   }
   addMessage('assistant', text);
@@ -2590,25 +2604,40 @@ function addMessage(role, text) {
 }
 
 // Render a section-formatted report as styled HTML for the chat bubble
+// Render section-formatted report as styled HTML — no raw markdown tokens visible
 function renderReportHtml(text) {
-  var SEP = /\n[\u2500\u2501\u2014\-]{4,}\n/g;
-  var parts = text.split(SEP);
+  // ── 1. Split on separator lines (4+ dashes/box-drawing/em-dashes) ──────────
+  // Matches: ────, ━━━━, ————, ----  (with optional surrounding whitespace)
+  var SEP_RE = /[ \t]*[\u2500\u2501\u2014\-]{4,}[ \t]*/gm;
+  // Replace separator lines with a unique split token (preserving newlines)
+  var tokenised = text.replace(SEP_RE, function(m, offset, str) {
+    // Only replace if the separator occupies its own line
+    var before = str.lastIndexOf('\n', offset);
+    var after = str.indexOf('\n', offset);
+    var lineContent = str.slice(before + 1, after === -1 ? str.length : after).trim();
+    return (lineContent === m.trim()) ? '\nSPLIT\n' : m;
+  });
+  var parts = tokenised.split('\nSPLIT\n').map(function(p) { return p.trim(); }).filter(Boolean);
+
   var out = '';
   parts.forEach(function(part) {
-    var p = part.trim();
-    if (!p) return;
-    var lines = p.split('\n');
+    var lines = part.split('\n');
     var hdr = lines[0].trim();
-    // Treat ALL-CAPS or ™-containing first line as a section header
-    var isHdr = hdr.length > 0 && (/^[A-Z0-9\s\.™\u2014:]+$/.test(hdr) || hdr.includes('™') || hdr.includes('S.O.U.L'));
+    // A line is a section header if it is ALL-CAPS (allowing digits, spaces, ™ .) or contains trademark symbols
+    var isHdr = hdr.length > 2 && (
+      /^[A-Z0-9\s\.\u2122\u2014—:,']+$/.test(hdr) ||
+      hdr.includes('™') ||
+      hdr.includes('S.O.U.L')
+    );
     if (isHdr) {
       out += '<div class="report-section-hdr">' + escHtml(hdr) + '</div>';
-      out += renderMarkdown(lines.slice(1).join('\n'));
+      var body = lines.slice(1).join('\n').trim();
+      if (body) out += renderMarkdown(body);
     } else {
-      out += renderMarkdown(p);
+      out += renderMarkdown(part);
     }
   });
-  return out;
+  return out || '<p>' + escHtml(text) + '</p>';
 }
 
 // Insert a formatted report block into the chat (replaces plain addMessage for report output)
