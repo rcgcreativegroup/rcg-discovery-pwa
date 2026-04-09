@@ -1592,7 +1592,7 @@ function beginSession() {
   var name = state.clientName || '';
   var email = state.clientEmail || '';
   var type = state.clientType === 'founder' ? 'Founder' : 'Artist';
-  var openingMsg = 'My name is ' + name + ' and my email is ' + email + '. I am here for my ' + type + ' S.O.U.L. Code Discovery session. I am ready to begin — please ask me the first discovery question now.';
+  var openingMsg = "I'm ready to begin. My name is " + name + ' and my email is ' + email + '.';
   sendToAssistant(openingMsg);
 }
 
@@ -1921,8 +1921,6 @@ function startListening() {
         finalTranscript = '';
         addMessage('user', text);
         state.sessionData.transcript.push({ role: 'user', text });
-        setVoiceStatus('thinking');
-        showThinking();
         sendToAssistant(text);
       }
     }, 1000);
@@ -2424,6 +2422,7 @@ function addMessage(role, text) {
 }
 
 function showThinking() {
+  hideThinking(); // prevent duplicate thinking bubbles
   const container = document.getElementById('messages-container');
   const div = document.createElement('div');
   div.id = 'thinking-indicator';
