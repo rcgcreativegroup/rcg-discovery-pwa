@@ -96,7 +96,9 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
       if (action === 'get_messages') {
         const messages = await openaiCall(`/threads/${threadId}/messages?limit=1&order=desc`);
         const reply = messages.data?.[0]?.content?.[0]?.text?.value || '';
-        return { statusCode: 200, headers, body: JSON.stringify({ reply }) };
+        const COMPLETION_MARKER = '\u2501\u2501\u2501 INTERNAL DATA BLOCK \u2014 BEGIN \u2501\u2501\u2501';
+        const sessionComplete = reply.includes(COMPLETION_MARKER);
+        return { statusCode: 200, headers, body: JSON.stringify({ reply, sessionComplete }) };
       }
 
       // NOTIFY MAKE — iPhone ping
