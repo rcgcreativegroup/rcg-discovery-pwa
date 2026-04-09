@@ -1657,7 +1657,9 @@ async function sendToAssistant(userMessage) {
   } catch (err) {
     hideThinking();
     console.error('Assistant call failed:', err);
-    addMessage('assistant', 'Error: ' + err.message);
+    // Show friendly message — raw server errors confuse users
+    var friendlyMsg = 'There was a connection issue — your response wasn\'t sent. Please tap the mic and continue.';
+    addMessage('assistant', friendlyMsg);
   } finally {
     // Unlock — re-enable mic regardless of success or failure
     state.isProcessing = false;
@@ -1923,7 +1925,7 @@ function startListening() {
         state.sessionData.transcript.push({ role: 'user', text });
         sendToAssistant(text);
       }
-    }, 1000);
+    }, 2500);
   };
 
   state.recognition.onerror = (event) => {
@@ -2418,7 +2420,18 @@ function addMessage(role, text) {
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
 
-  // (complete session auto-advances when report is received)
+  // Auto-reveal the "Complete Discovery Session" button after 16 assistant turns
+  // This is a safety fallback — the session may complete before this, or the model
+  // may not auto-fire the completion trigger, so give the user a way out.
+  if (role === "assistant") {
+    var assistantCount = state.messages.filter(function(m) { return m.role === "assistant"; }).length;
+    if (assistantCount >= 16) {
+      var endBtn = document.getElementById("session-end-btn");
+      if (endBtn && !endBtn.classList.contains("reveal")) {
+        endBtn.classList.add("reveal");
+      }
+    }
+  }
 }
 
 function showThinking() {
