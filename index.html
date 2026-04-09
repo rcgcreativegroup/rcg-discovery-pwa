@@ -759,6 +759,80 @@
     font-style: italic;
   }
 
+    /* ── S.O.U.L sub-score rows ── */
+    .score-sub-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      margin-top: 0.25rem;
+    }
+    .score-sub-row {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--white);
+      line-height: 1.5;
+    }
+    .sub-label {
+      color: var(--gold);
+      font-weight: 400;
+    }
+    .sub-pipe {
+      color: rgba(201,165,90,0.4);
+      margin: 0 0.15rem;
+    }
+    .sub-score-val {
+      color: var(--white);
+    }
+
+    /* ── Diagnostic sections (Brand Identity Index / Founder Scorecard) ── */
+    .diagnostic-subtitle {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+    .diag-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid rgba(201,165,90,0.1);
+    }
+    .diag-label {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--white);
+    }
+    .diag-val {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--muted);
+      flex-shrink: 0;
+      margin-left: 1rem;
+    }
+    .diag-composite {
+      border-bottom: none;
+      margin-top: 0.3rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid rgba(201,165,90,0.3);
+    }
+    .diag-composite .diag-label {
+      color: var(--gold);
+      font-weight: 500;
+    }
+    .diag-composite .diag-val {
+      color: var(--gold);
+    }
+    .diag-closing {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: 1.25rem;
+      line-height: 1.6;
+    }
+
   hr.content-rule {
     border: none;
     border-top: 1px solid rgba(201,165,90,0.3);
@@ -1933,43 +2007,84 @@ async function getLatestMessage() {
 // REPORT PARSING
 // ══════════════════════════════════════
 function parseReport(fullText) {
-  // Locate the internal block using partial match (robust to Unicode variations)
   var blockIdx = fullText.indexOf('INTERNAL DATA BLOCK');
-  // Walk back to start of that line so we capture the full separator
   var lineStart = blockIdx !== -1 ? fullText.lastIndexOf('\n', blockIdx) : -1;
   var cutAt = lineStart !== -1 ? lineStart : blockIdx;
   var clientSection   = cutAt >= 0 ? fullText.slice(0, cutAt).trim() : fullText.trim();
   var internalSection = blockIdx >= 0 ? fullText.slice(blockIdx).trim() : '';
 
-  // soul_score: — accepts "soul_score: 72", "SOUL SCORE: 72", "S.O.U.L Score: 72"
+  // S.O.U.L composite score
   var soulMatch = internalSection.match(/s\.?o\.?u\.?l\.?[_\s]*score\s*[:\-]\s*([\d.]+)/i);
   var soulScore = soulMatch ? soulMatch[1].trim() : '';
 
-  // archetype_signal:
+  // S/O/U/L sub-scores
+  var sSubMatch = internalSection.match(/S\s*[\u2014\-]\s*Story\s*Clarity\s*[:|]\s*([\d.]+)/i) ||
+                  internalSection.match(/Story\s*Clarity\s*[:|]\s*([\d.]+)/i);
+  var sSubScore = sSubMatch ? sSubMatch[1].trim() : '';
+
+  var oSubMatch = internalSection.match(/O\s*[\u2014\-]\s*Origin\s*Depth\s*[:|]\s*([\d.]+)/i) ||
+                  internalSection.match(/Origin\s*Depth\s*[:|]\s*([\d.]+)/i);
+  var oSubScore = oSubMatch ? oSubMatch[1].trim() : '';
+
+  var uSubMatch = internalSection.match(/U\s*[\u2014\-]\s*Uniqueness\s*Signal\s*[:|]\s*([\d.]+)/i) ||
+                  internalSection.match(/Uniqueness\s*Signal\s*[:|]\s*([\d.]+)/i);
+  var uSubScore = uSubMatch ? uSubMatch[1].trim() : '';
+
+  var lSubMatch = internalSection.match(/L\s*[\u2014\-]\s*Legacy\s*Intention\s*[:|]\s*([\d.]+)/i) ||
+                  internalSection.match(/Legacy\s*Intention\s*[:|]\s*([\d.]+)/i);
+  var lSubScore = lSubMatch ? lSubMatch[1].trim() : '';
+
+  // Brand Identity Index
+  var biiM1 = internalSection.match(/Identity\s*Clarity\s*[:|]\s*([\d.]+)/i);
+  var biiIdentityClarity = biiM1 ? biiM1[1].trim() : '';
+  var biiM2 = internalSection.match(/Audience\s*Focus\s*[:|]\s*([\d.]+)/i);
+  var biiAudienceFocus = biiM2 ? biiM2[1].trim() : '';
+  var biiM3 = internalSection.match(/Story\s*Power\s*[:|]\s*([\d.]+)/i);
+  var biiStoryPower = biiM3 ? biiM3[1].trim() : '';
+  var biiM4 = internalSection.match(/Differentiation\s*Strength\s*[:|]\s*([\d.]+)/i);
+  var biiDifferentiationStrength = biiM4 ? biiM4[1].trim() : '';
+  var biiM5 = internalSection.match(/Visibility\s*Engine\s*[:|]\s*([\d.]+)/i);
+  var biiVisibilityEngine = biiM5 ? biiM5[1].trim() : '';
+
+  // Founder Identity Scorecard
+  var fisM1 = internalSection.match(/Audience\s*Definition\s*[:|]\s*([\d.]+)/i);
+  var fisAudienceDefinition = fisM1 ? fisM1[1].trim() : '';
+  var fisM2 = internalSection.match(/Narrative\s*Strength\s*[:|]\s*([\d.]+)/i);
+  var fisNarrativeStrength = fisM2 ? fisM2[1].trim() : '';
+  var fisM3 = internalSection.match(/(?<!Differentiation\s)Differentiation\s*[:|]\s*([\d.]+)/i);
+  var fisDifferentiation = fisM3 ? fisM3[1].trim() : '';
+  var fisM4 = internalSection.match(/Visibility\s*Infrastructure\s*[:|]\s*([\d.]+)/i);
+  var fisVisibilityInfrastructure = fisM4 ? fisM4[1].trim() : '';
+  var fisIdentityClarity = biiIdentityClarity;
+
+  // archetype_signal
   var archMatch = internalSection.match(/archetype[_\s]signal\s*[:\-]\s*([^\n]+)/i);
   var archetypeSignal = archMatch ? archMatch[1].trim() : '';
 
-  // strategist_notes: multiline until next section header or end
+  // strategist_notes
   var notesMatch = internalSection.match(/strategist[_\s]*notes\s*[:\-]?\s*\n([\s\S]*?)(?=\n[A-Z][^\n]{0,40}[:\-]|\n\u2501|\nGPT|$)/i);
   var strategistNotes = notesMatch ? notesMatch[1].trim() : '';
 
-  // strategist_input / GPT 2 input block — everything from that header to end
+  // strategist_input
   var gpt2Match = internalSection.match(/gpt[_\s]*2[_\s]*input[^\n]*\n([\s\S]*?)(?=\n\u2501|$)/i);
   var strategistInput = gpt2Match ? gpt2Match[1].trim() : internalSection;
 
-  // transcript lines starting with Q:
+  // transcript
   var transcriptMatch = internalSection.match(/(Q:[\s\S]+)/i);
   var transcript = transcriptMatch ? transcriptMatch[1].trim() : '';
 
   return {
-    rawReport:          fullText,
-    clientSection:      clientSection,
-    internalSection:    internalSection,
-    soulScore:          soulScore,
-    archetypeSignal:    archetypeSignal,
-    strategistNotes:    strategistNotes,
-    strategistInput:    strategistInput,
-    transcript:         transcript,
+    rawReport: fullText,
+    clientSection,
+    internalSection,
+    soulScore,
+    sSubScore, oSubScore, uSubScore, lSubScore,
+    biiIdentityClarity, biiAudienceFocus, biiStoryPower,
+    biiDifferentiationStrength, biiVisibilityEngine,
+    fisIdentityClarity, fisAudienceDefinition,
+    fisNarrativeStrength, fisDifferentiation, fisVisibilityInfrastructure,
+    archetypeSignal, strategistNotes, strategistInput,
+    transcript,
     clientEmailContent: clientSection
   };
 }
@@ -1982,20 +2097,34 @@ async function autoEndSession(parsed) {
   if (state.synthesis) state.synthesis.cancel();
 
   const sessionRecord = {
-    id: Date.now().toString(),
-    clientType: state.clientType,
-    clientName: state.clientName || '',
-    clientEmail: state.clientEmail || '',
-    date: new Date().toISOString(),
-    soulScore: parsed.soulScore,
-    archetypeSignal: parsed.archetypeSignal,
-    strategistNotes: parsed.strategistNotes,
-    strategistInput: parsed.strategistInput,
-    transcript: parsed.transcript,
-    clientEmailContent: parsed.clientEmailContent,
-    rawReport: parsed.rawReport,
-    reviewed: false
-  };
+      id: Date.now().toString(),
+      clientType: state.clientType,
+      clientName: state.clientName || '',
+      clientEmail: state.clientEmail || '',
+      date: new Date().toISOString(),
+      soulScore: parsed.soulScore,
+      sSubScore: parsed.sSubScore,
+      oSubScore: parsed.oSubScore,
+      uSubScore: parsed.uSubScore,
+      lSubScore: parsed.lSubScore,
+      biiIdentityClarity: parsed.biiIdentityClarity,
+      biiAudienceFocus: parsed.biiAudienceFocus,
+      biiStoryPower: parsed.biiStoryPower,
+      biiDifferentiationStrength: parsed.biiDifferentiationStrength,
+      biiVisibilityEngine: parsed.biiVisibilityEngine,
+      fisIdentityClarity: parsed.fisIdentityClarity,
+      fisAudienceDefinition: parsed.fisAudienceDefinition,
+      fisNarrativeStrength: parsed.fisNarrativeStrength,
+      fisDifferentiation: parsed.fisDifferentiation,
+      fisVisibilityInfrastructure: parsed.fisVisibilityInfrastructure,
+      archetypeSignal: parsed.archetypeSignal,
+      strategistNotes: parsed.strategistNotes,
+      strategistInput: parsed.strategistInput,
+      transcript: parsed.transcript,
+      clientEmailContent: parsed.clientEmailContent,
+      rawReport: parsed.rawReport,
+      reviewed: false
+    };
 
   saveSession(sessionRecord);
   fireWebhook(sessionRecord);
@@ -2279,41 +2408,37 @@ function sendEmailJS(record) {
 }
 
 function showResultsScreen(record) {
-  const name = record.clientName || '';
-  const calendlyUrl = CONFIG.calendlyUrl || 'https://calendly.com/travisrobinsonlive/30min';
+    const name = record.clientName || '';
+    const calendlyUrl = CONFIG.calendlyUrl || 'https://calendly.com/travisrobinsonlive/30min';
 
-  // Header
-  const nameLine = document.getElementById('results-name-line');
-  if (nameLine) nameLine.innerHTML = name
-    ? '<em>' + escHtml(name) + ',</em><br>here is what your session revealed.'
-    : 'Here is what your session revealed.';
+    const nameLine = document.getElementById('results-name-line');
+    if (nameLine) nameLine.innerHTML = name
+      ? '<em>' + escHtml(name) + ',</em><br>here is what your session revealed.'
+      : 'Here is what your session revealed.';
 
-  // Parse client output into sections
-  const cx = record.clientEmailContent || record.rawReport || '';
-  const sects = parseClientSections(cx);
+    const cx = record.clientEmailContent || record.rawReport || '';
+    const sects = parseClientSections(cx);
 
-  // Build accordion
-  const accordion = document.getElementById('results-accordion');
-  if (!accordion) { showScreen('screen-results'); return; }
+    const accordion = document.getElementById('results-accordion');
+    if (!accordion) { showScreen('screen-results'); return; }
 
-  const score = record.soulScore || '—';
-  const archetype = record.archetypeSignal || '—';
+    accordion.innerHTML = [
+      buildAccSection(0, 'Your S.O.U.L Identity Score\u2122',
+        buildScoreSection(record)),
+      buildAccSection(1, 'Brand Identity Index\u2122',
+        buildBrandIndexSection(record)),
+      buildAccSection(2, 'Founder Identity Scorecard\u2122',
+        buildFounderScorecardSection(record)),
+      buildAccSection(3, 'Your Founder Archetype Signal\u2122',
+        buildArchetypeSection(record.archetypeSignal, sects.archetypeSection)),
+      buildAccSection(4, 'What We Need to Tighten',
+        buildTightenSection(sects.tightenSection)),
+      buildAccSection(5, 'What Comes Next',
+        buildNextSection(calendlyUrl)),
+    ].join('');
 
-  accordion.innerHTML = [
-    buildAccSection(0, 'Your S.O.U.L Identity Score™',
-      buildScoreSection(score, sects.scoreSection)),
-    buildAccSection(1, 'Your Session Email',
-      buildEmailSection(sects.emailSection, name)),
-    buildAccSection(2, 'Your Founder Archetype Signal™',
-      buildArchetypeSection(archetype, sects.archetypeSection)),
-    buildAccSection(3, 'What We Need to Tighten',
-      buildTightenSection(sects.tightenSection)),
-    buildAccSection(4, 'What Comes Next',
-      buildNextSection(sects.nextStepsSection, calendlyUrl))
-  ].join('');
-
-  showScreen('screen-results');
-}
+    showScreen('screen-results');
+  }
 
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -2340,118 +2465,150 @@ function renderMarkdown(text) {
   return h;
 }
 function buildAccSection(idx, title, bodyHtml) {
-  return `
-    <div class="accordion-section" id="acc-${idx}">
-      <button class="accordion-hdr" onclick="toggleAcc(${idx})" aria-expanded="false">
-        <span class="accordion-title">${escHtml(title)}</span>
-        <span class="accordion-chevron">›</span>
-      </button>
-      <div class="accordion-body" id="acc-body-${idx}" hidden>
-        <div class="accordion-inner">${bodyHtml}</div>
-      </div>
-    </div>`;
-}
+    return `
+      <div class="accordion-section" id="acc-${idx}">
+        <button class="accordion-hdr" onclick="toggleAcc(${idx})" aria-expanded="false">
+          <span class="accordion-title">${escHtml(title)}</span>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" id="acc-body-${idx}" hidden>
+          <div class="accordion-inner">${bodyHtml}</div>
+        </div>
+      </div>`;
+  }
 
-function toggleAcc(idx) {
-  const sections = document.querySelectorAll('.accordion-section');
-  sections.forEach((sec, i) => {
-    const hdr = sec.querySelector('.accordion-hdr');
-    const body = sec.querySelector('.accordion-body');
-    if (i === idx) {
-      const isOpen = !body.hidden;
-      body.hidden = isOpen;
-      hdr.setAttribute('aria-expanded', String(!isOpen));
-      hdr.classList.toggle('open', !isOpen);
-    } else {
-      body.hidden = true;
-      hdr.setAttribute('aria-expanded', 'false');
-      hdr.classList.remove('open');
+  function toggleAcc(idx) {
+    const sections = document.querySelectorAll('.accordion-section');
+    sections.forEach((sec, i) => {
+      const hdr = sec.querySelector('.accordion-hdr');
+      const body = sec.querySelector('.accordion-body');
+      if (i === idx) {
+        const isOpen = !body.hidden;
+        body.hidden = isOpen;
+        hdr.setAttribute('aria-expanded', String(!isOpen));
+        hdr.classList.toggle('open', !isOpen);
+      } else {
+        body.hidden = true;
+        hdr.setAttribute('aria-expanded', 'false');
+        hdr.classList.remove('open');
+      }
+    });
+  }
+
+  function parseClientSections(text) {
+    var safe = text || '';
+    var SEP = /\n[\u2500\u2501\u2014\-]{4,}\n/g;
+    var parts = safe.split(SEP).map(function(p) { return p.trim(); }).filter(Boolean);
+
+    var scoreSection = '', archetypeSection = '', tightenSection = '';
+    var nextStepsSection = '';
+
+    parts.forEach(function(p) {
+      var header = p.split('\n')[0].toUpperCase();
+      if (/TIGHTEN/.test(header)) {
+        tightenSection = p.split('\n').slice(1).join('\n').trim();
+      } else if (/COMES\s+NEXT/.test(header)) {
+        nextStepsSection = p.split('\n').slice(1).join('\n').trim();
+      } else if (/ARCHETYPE|ARCHETYPE\s+SIGNAL/.test(header)) {
+        archetypeSection = p.split('\n').slice(1).join('\n').trim();
+      } else if (/SOUL|S\.O\.U\.L|IDENTITY\s+SCORE/.test(header)) {
+        scoreSection = p;
+      } else if (!scoreSection) {
+        scoreSection = p;
+      }
+    });
+
+    if (!archetypeSection) {
+      var m = safe.match(/(?:founder\s+archetype|archetype\s+signal)[^\n]*\n([\s\S]*?)(?=\n[\u2500\u2501\u2014\-]{4,}|$)/i);
+      if (m) archetypeSection = m[1].trim();
     }
-  });
-}
-
-function parseClientSections(text) {
-  var safe = text || '';
-  // Split on separator lines (4+ of ─ ━ — or -)
-  var SEP = /\n[\u2500\u2501\u2014\-]{4,}\n/g;
-  var parts = safe.split(SEP).map(function(p) { return p.trim(); }).filter(Boolean);
-
-  var scoreSection = '', archetypeSection = '', tightenSection = '';
-  var nextStepsSection = '', emailSection = '';
-
-  parts.forEach(function(p) {
-    var header = p.split('\n')[0].toUpperCase();
-    if (/TIGHTEN/.test(header)) {
-      tightenSection = p.split('\n').slice(1).join('\n').trim();
-    } else if (/COMES\s+NEXT/.test(header)) {
-      nextStepsSection = p.split('\n').slice(1).join('\n').trim();
-    } else if (/ARCHETYPE|ARCHETYPE\s+SIGNAL/.test(header)) {
-      archetypeSection = p.split('\n').slice(1).join('\n').trim();
-    } else if (/SOUL|S\.O\.U\.L|IDENTITY\s+SCORE/.test(header)) {
-      scoreSection = p;
-    } else if (/EMAIL|SUBJECT|DEAR/.test(header)) {
-      emailSection = p;
-    } else if (!scoreSection) {
-      // First unmatched section is likely the score section (WHAT YOUR STORY REVEALED + scores)
-      scoreSection = p;
+    if (!tightenSection) {
+      var m2 = safe.match(/what\s+we\s+need\s+to\s+tighten[^\n]*\n([\s\S]*?)(?=\n[\u2500\u2501\u2014\-]{4,}|$)/i);
+      if (m2) tightenSection = m2[1].trim();
     }
-  });
 
-  // Regex fallbacks if separator-split missed sections
-  if (!archetypeSection) {
-    var m = safe.match(/(?:founder\s+archetype|archetype\s+signal)[^\n]*\n([\s\S]*?)(?=\n[\u2500\u2501\u2014\-]{4,}|$)/i);
-    if (m) archetypeSection = m[1].trim();
-  }
-  if (!tightenSection) {
-    var m2 = safe.match(/what\s+we\s+need\s+to\s+tighten[^\n]*\n([\s\S]*?)(?=\n[\u2500\u2501\u2014\-]{4,}|$)/i);
-    if (m2) tightenSection = m2[1].trim();
-  }
-  if (!nextStepsSection) {
-    var m3 = safe.match(/what\s+comes\s+next[^\n]*\n([\s\S]*)$/i);
-    if (m3) nextStepsSection = m3[1].trim();
+    return { scoreSection, archetypeSection, tightenSection };
   }
 
-  return {
-    scoreSection:     scoreSection,
-    emailSection:     emailSection || safe,
-    archetypeSection: archetypeSection,
-    tightenSection:   tightenSection,
-    nextStepsSection: nextStepsSection
-  };
-}
+  function buildScoreSection(record) {
+    var composite = record.soulScore || '\u2014';
+    var subs = [
+      { label: 'S \u2014 Story Clarity', score: record.sSubScore },
+      { label: 'O \u2014 Origin Depth',  score: record.oSubScore },
+      { label: 'U \u2014 Uniqueness Signal', score: record.uSubScore },
+      { label: 'L \u2014 Legacy Intention',  score: record.lSubScore },
+    ];
+    var subRows = subs.map(function(s) {
+      var scoreStr = s.score ? escHtml(String(s.score)) : '\u2014';
+      return '<div class="score-sub-row">' +
+        '<span class="sub-label">' + escHtml(s.label) + '</span>' +
+        '<span class="sub-pipe"> | </span>' +
+        '<span class="sub-score-val">' + scoreStr + '</span>' +
+        '</div>';
+    }).join('');
+    return '<div class="soul-composite">' + escHtml(String(composite)) +
+      '<span class="soul-composite-denom"> / 10</span></div>' +
+      '<div class="content-rule-wrap"><hr class="content-rule"></div>' +
+      '<div class="score-sub-rows">' + subRows + '</div>';
+  }
 
-function buildScoreSection(composite, rawText) {
-  return `
-    <div class="soul-composite">${escHtml(composite)}<span class="soul-composite-denom"> / 10</span></div>
-    <p class="soul-composite-sub">A discovery-based measure of how clearly your Story, Origin, Uniqueness, and Legacy came through in your session.</p>
-    <div class="content-rule-wrap"><hr class="content-rule"></div>
-    <div class="score-raw">${renderMarkdown(rawText)}</div>
-  `;
-}
+  function buildDiagSection(categories, composite, compositeOf) {
+    var rows = categories.map(function(c) {
+      var val = c.value ? escHtml(String(c.value)) : '\u2014';
+      return '<div class="diag-row"><span class="diag-label">' + escHtml(c.label) +
+        '</span><span class="diag-val">' + val + ' / 10</span></div>';
+    }).join('');
+    var compVal = composite ? escHtml(String(composite)) : '\u2014';
+    var compRow = '<div class="diag-row diag-composite"><span class="diag-label">Composite</span>' +
+      '<span class="diag-val">' + compVal + ' / ' + compositeOf + '</span></div>';
+    return rows + compRow;
+  }
 
-function buildEmailSection(rawText, name) {
-  return `<div class="email-body">${renderMarkdown(rawText)}</div>`;
-}
+  function buildBrandIndexSection(record) {
+    var cats = [
+      { label: 'Identity Clarity',         value: record.biiIdentityClarity },
+      { label: 'Audience Focus',           value: record.biiAudienceFocus },
+      { label: 'Story Power',              value: record.biiStoryPower },
+      { label: 'Differentiation Strength', value: record.biiDifferentiationStrength },
+      { label: 'Visibility Engine',        value: record.biiVisibilityEngine },
+    ];
+    var vals = cats.map(function(c) { return c.value ? parseFloat(c.value) : NaN; });
+    var allValid = vals.every(function(v) { return !isNaN(v); });
+    var composite = allValid ? vals.reduce(function(a,b){return a+b;},0) : null;
+    return '<p class="diagnostic-subtitle">Measures current brand strength.</p>' +
+      buildDiagSection(cats, composite, 100);
+  }
 
-function buildArchetypeSection(archetype, rawText) {
-  return `
-    <div class="archetype-name">${escHtml(archetype)}</div>
-    <div class="archetype-body">${renderMarkdown(rawText)}</div>
-  `;
-}
+  function buildFounderScorecardSection(record) {
+    var cats = [
+      { label: 'Identity Clarity',          value: record.fisIdentityClarity },
+      { label: 'Audience Definition',       value: record.fisAudienceDefinition },
+      { label: 'Narrative Strength',        value: record.fisNarrativeStrength },
+      { label: 'Differentiation',           value: record.fisDifferentiation },
+      { label: 'Visibility Infrastructure', value: record.fisVisibilityInfrastructure },
+    ];
+    return '<p class="diagnostic-subtitle">Measures founder readiness to lead.</p>' +
+      buildDiagSection(cats, null, null) +
+      '<p class="diag-closing">These reflect early signals \u2014 not a final diagnosis, but areas for further clarity.</p>';
+  }
 
-function buildTightenSection(rawText) {
-  return `<div class="tighten-body">${renderMarkdown(rawText)}</div>`;
-}
+  function buildArchetypeSection(archetype, rawText) {
+    return '<div class="archetype-name">' + escHtml(archetype || '\u2014') + '</div>' +
+      '<div class="archetype-body">' + renderMarkdown(rawText) + '</div>';
+  }
 
-function buildNextSection(rawText, calendlyUrl) {
-  return `
-    <div class="next-body">${renderMarkdown(rawText)}</div>
-    <a href="${escHtml(calendlyUrl)}" target="_blank" class="btn-calendly">
-      Schedule Your Brand Growth Blueprint™ Session
-    </a>
-  `;
-}
+  function buildTightenSection(rawText) {
+    return '<div class="tighten-body">' + renderMarkdown(rawText) + '</div>';
+  }
+
+  function buildNextSection(calendlyUrl) {
+    return '<div class="next-body">' +
+      '<p>Your S.O.U.L. Code Discovery is complete. What you just experienced was the first step \u2014 excavating the story, beliefs, and identity signals that make your brand uniquely yours.</p>' +
+      '<p>The Brand Growth Blueprint\u2122 session is where Travis Robinson takes everything surfaced here and builds it into a strategic direction specific to you. Your S.O.U.L. Code\u2122 gets confirmed. Your Founder Archetype\u2122 gets revealed. And the brand that\u2019s been inside you all along starts to take shape.</p>' +
+      '<p>Discovery gave us the raw material. The Blueprint session is where we build.</p>' +
+      '</div>' +
+      '<a href="' + escHtml(calendlyUrl) + '" target="_blank" class="btn-calendly">Schedule Your Brand Growth Blueprint\u2122 Session \u2192</a>';
+  }
 
 // ══════════════════════════════════════
 // ADMIN PANEL
