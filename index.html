@@ -2013,65 +2013,54 @@ function parseReport(fullText) {
   var clientSection   = cutAt >= 0 ? fullText.slice(0, cutAt).trim() : fullText.trim();
   var internalSection = blockIdx >= 0 ? fullText.slice(blockIdx).trim() : '';
 
-  // S.O.U.L composite score
-  var soulMatch = internalSection.match(/s\.?o\.?u\.?l\.?[_\s]*score\s*[:\-]\s*([\d.]+)/i);
+  // ── S.O.U.L composite score (avg of S+O+U only; Legacy excluded) ──
+  var soulMatch = internalSection.match(/S\.O\.U\.L\s*Identity\s*Score\s*[:\-]\s*([\d.]+)/i)
+               || internalSection.match(/S\.?O\.?U\.?L\.?[_\s]*score\s*[:\-]\s*([\d.]+)/i);
   var soulScore = soulMatch ? soulMatch[1].trim() : '';
 
-  // S/O/U/L sub-scores
-  var sSubMatch = internalSection.match(/S\s*[\u2014\-]\s*Story\s*Clarity\s*[:|]\s*([\d.]+)/i) ||
-                  internalSection.match(/Story\s*Clarity\s*[:|]\s*([\d.]+)/i);
-  var sSubScore = sSubMatch ? sSubMatch[1].trim() : '';
+  // ── S/O/U/L sub-scores (format: "S — Story Clarity: 8 | sentence") ──
+  var sM = internalSection.match(/S\s*[\u2014\-]\s*Story\s*Clarity\s*:\s*([\d.]+)/i);
+  var sSubScore = sM ? sM[1].trim() : '';
+  var oM = internalSection.match(/O\s*[\u2014\-]\s*Origin\s*Depth\s*:\s*([\d.]+)/i);
+  var oSubScore = oM ? oM[1].trim() : '';
+  var uM = internalSection.match(/U\s*[\u2014\-]\s*Uniqueness\s*Signal\s*:\s*([\d.]+)/i);
+  var uSubScore = uM ? uM[1].trim() : '';
+  var lM = internalSection.match(/L\s*[\u2014\-]\s*Legacy\s*Intention\s*:\s*([\d.]+)/i);
+  var lSubScore = lM ? lM[1].trim() : '';
 
-  var oSubMatch = internalSection.match(/O\s*[\u2014\-]\s*Origin\s*Depth\s*[:|]\s*([\d.]+)/i) ||
-                  internalSection.match(/Origin\s*Depth\s*[:|]\s*([\d.]+)/i);
-  var oSubScore = oSubMatch ? oSubMatch[1].trim() : '';
+  // ── Founder Authority Readiness Score™ ──
+  var farSAM  = internalSection.match(/Self-Awareness\s*:\s*([\d.]+)/i);
+  var farSelfAwareness = farSAM ? farSAM[1].trim() : '';
+  var farArtM = internalSection.match(/Articulation\s*:\s*([\d.]+)/i);
+  var farArticulation = farArtM ? farArtM[1].trim() : '';
+  var farECM  = internalSection.match(/Emotional\s*Clarity\s*:\s*([\d.]+)/i);
+  var farEmotionalClarity = farECM ? farECM[1].trim() : '';
+  var farMFM  = internalSection.match(/Mission\s*Focus\s*:\s*([\d.]+)/i);
+  var farMissionFocus = farMFM ? farMFM[1].trim() : '';
+  var farBCM  = internalSection.match(/Belief\s*Conviction\s*:\s*([\d.]+)/i);
+  var farBeliefConviction = farBCM ? farBCM[1].trim() : '';
+  var farNCM  = internalSection.match(/Narrative\s*Consistency\s*:\s*([\d.]+)/i);
+  var farNarrativeConsistency = farNCM ? farNCM[1].trim() : '';
+  var farCM   = internalSection.match(/Founder\s*Authority\s*Readiness\s*Composite\s*:\s*([\d.]+)/i);
+  var farComposite = farCM ? farCM[1].trim() : '';
 
-  var uSubMatch = internalSection.match(/U\s*[\u2014\-]\s*Uniqueness\s*Signal\s*[:|]\s*([\d.]+)/i) ||
-                  internalSection.match(/Uniqueness\s*Signal\s*[:|]\s*([\d.]+)/i);
-  var uSubScore = uSubMatch ? uSubMatch[1].trim() : '';
+  // ── Archetype signal ──
+  var archM = internalSection.match(/Primary\s*Signal\s*:\s*([^|\n]+)/i);
+  var archetypeSignal = archM ? archM[1].trim() : '';
+  var archConfM = internalSection.match(/Primary\s*Signal\s*:[^|]+\|\s*Confidence\s*:\s*([^\n]+)/i);
+  var archetypeConfidence = archConfM ? archConfM[1].trim() : '';
+  var archTrigM = internalSection.match(/Trigger\s*Phrase\s*:\s*"([^"]+)"/i);
+  var archetypeTriggerPhrase = archTrigM ? archTrigM[1].trim() : '';
 
-  var lSubMatch = internalSection.match(/L\s*[\u2014\-]\s*Legacy\s*Intention\s*[:|]\s*([\d.]+)/i) ||
-                  internalSection.match(/Legacy\s*Intention\s*[:|]\s*([\d.]+)/i);
-  var lSubScore = lSubMatch ? lSubMatch[1].trim() : '';
+  // ── Strategist notes / GPT-2 input block ──
+  var notesM = internalSection.match(/STRATEGIST\s*NOTES\s*[\s\S]*?(?=\n[\u2501]{3}|$)/i);
+  var strategistNotes = notesM ? notesM[0].replace(/STRATEGIST\s*NOTES/i,'').trim() : '';
+  var gpt2M = internalSection.match(/GPT\s*2\s*INPUT\s*BLOCK[\s\S]*?(?=\n[\u2501]{3}|$)/i);
+  var strategistInput = gpt2M ? gpt2M[0].trim() : internalSection;
 
-  // Brand Identity Index
-  var biiM1 = internalSection.match(/Identity\s*Clarity\s*[:|]\s*([\d.]+)/i);
-  var biiIdentityClarity = biiM1 ? biiM1[1].trim() : '';
-  var biiM2 = internalSection.match(/Audience\s*Focus\s*[:|]\s*([\d.]+)/i);
-  var biiAudienceFocus = biiM2 ? biiM2[1].trim() : '';
-  var biiM3 = internalSection.match(/Story\s*Power\s*[:|]\s*([\d.]+)/i);
-  var biiStoryPower = biiM3 ? biiM3[1].trim() : '';
-  var biiM4 = internalSection.match(/Differentiation\s*Strength\s*[:|]\s*([\d.]+)/i);
-  var biiDifferentiationStrength = biiM4 ? biiM4[1].trim() : '';
-  var biiM5 = internalSection.match(/Visibility\s*Engine\s*[:|]\s*([\d.]+)/i);
-  var biiVisibilityEngine = biiM5 ? biiM5[1].trim() : '';
-
-  // Founder Identity Scorecard
-  var fisM1 = internalSection.match(/Audience\s*Definition\s*[:|]\s*([\d.]+)/i);
-  var fisAudienceDefinition = fisM1 ? fisM1[1].trim() : '';
-  var fisM2 = internalSection.match(/Narrative\s*Strength\s*[:|]\s*([\d.]+)/i);
-  var fisNarrativeStrength = fisM2 ? fisM2[1].trim() : '';
-  var fisM3 = internalSection.match(/(?<!Differentiation\s)Differentiation\s*[:|]\s*([\d.]+)/i);
-  var fisDifferentiation = fisM3 ? fisM3[1].trim() : '';
-  var fisM4 = internalSection.match(/Visibility\s*Infrastructure\s*[:|]\s*([\d.]+)/i);
-  var fisVisibilityInfrastructure = fisM4 ? fisM4[1].trim() : '';
-  var fisIdentityClarity = biiIdentityClarity;
-
-  // archetype_signal
-  var archMatch = internalSection.match(/archetype[_\s]signal\s*[:\-]\s*([^\n]+)/i);
-  var archetypeSignal = archMatch ? archMatch[1].trim() : '';
-
-  // strategist_notes
-  var notesMatch = internalSection.match(/strategist[_\s]*notes\s*[:\-]?\s*\n([\s\S]*?)(?=\n[A-Z][^\n]{0,40}[:\-]|\n\u2501|\nGPT|$)/i);
-  var strategistNotes = notesMatch ? notesMatch[1].trim() : '';
-
-  // strategist_input
-  var gpt2Match = internalSection.match(/gpt[_\s]*2[_\s]*input[^\n]*\n([\s\S]*?)(?=\n\u2501|$)/i);
-  var strategistInput = gpt2Match ? gpt2Match[1].trim() : internalSection;
-
-  // transcript
-  var transcriptMatch = internalSection.match(/(Q:[\s\S]+)/i);
-  var transcript = transcriptMatch ? transcriptMatch[1].trim() : '';
+  // ── Transcript ──
+  var transcriptM = internalSection.match(/(Q:[\s\S]+)/i);
+  var transcript = transcriptM ? transcriptM[1].trim() : '';
 
   return {
     rawReport: fullText,
@@ -2079,12 +2068,11 @@ function parseReport(fullText) {
     internalSection,
     soulScore,
     sSubScore, oSubScore, uSubScore, lSubScore,
-    biiIdentityClarity, biiAudienceFocus, biiStoryPower,
-    biiDifferentiationStrength, biiVisibilityEngine,
-    fisIdentityClarity, fisAudienceDefinition,
-    fisNarrativeStrength, fisDifferentiation, fisVisibilityInfrastructure,
-    archetypeSignal, strategistNotes, strategistInput,
-    transcript,
+    farSelfAwareness, farArticulation, farEmotionalClarity,
+    farMissionFocus, farBeliefConviction, farNarrativeConsistency,
+    farComposite,
+    archetypeSignal, archetypeConfidence, archetypeTriggerPhrase,
+    strategistNotes, strategistInput, transcript,
     clientEmailContent: clientSection
   };
 }
@@ -2107,17 +2095,16 @@ async function autoEndSession(parsed) {
       oSubScore: parsed.oSubScore,
       uSubScore: parsed.uSubScore,
       lSubScore: parsed.lSubScore,
-      biiIdentityClarity: parsed.biiIdentityClarity,
-      biiAudienceFocus: parsed.biiAudienceFocus,
-      biiStoryPower: parsed.biiStoryPower,
-      biiDifferentiationStrength: parsed.biiDifferentiationStrength,
-      biiVisibilityEngine: parsed.biiVisibilityEngine,
-      fisIdentityClarity: parsed.fisIdentityClarity,
-      fisAudienceDefinition: parsed.fisAudienceDefinition,
-      fisNarrativeStrength: parsed.fisNarrativeStrength,
-      fisDifferentiation: parsed.fisDifferentiation,
-      fisVisibilityInfrastructure: parsed.fisVisibilityInfrastructure,
+      farSelfAwareness: parsed.farSelfAwareness,
+      farArticulation: parsed.farArticulation,
+      farEmotionalClarity: parsed.farEmotionalClarity,
+      farMissionFocus: parsed.farMissionFocus,
+      farBeliefConviction: parsed.farBeliefConviction,
+      farNarrativeConsistency: parsed.farNarrativeConsistency,
+      farComposite: parsed.farComposite,
       archetypeSignal: parsed.archetypeSignal,
+      archetypeConfidence: parsed.archetypeConfidence,
+      archetypeTriggerPhrase: parsed.archetypeTriggerPhrase,
       strategistNotes: parsed.strategistNotes,
       strategistInput: parsed.strategistInput,
       transcript: parsed.transcript,
@@ -2423,17 +2410,15 @@ function showResultsScreen(record) {
     if (!accordion) { showScreen('screen-results'); return; }
 
     accordion.innerHTML = [
-      buildAccSection(0, 'Your S.O.U.L Identity Score\u2122',
+      buildAccSection(0, 'Your S.O.U.L Identity Score™',
         buildScoreSection(record)),
-      buildAccSection(1, 'Brand Identity Index\u2122',
-        buildBrandIndexSection(record)),
-      buildAccSection(2, 'Founder Identity Scorecard\u2122',
-        buildFounderScorecardSection(record)),
-      buildAccSection(3, 'Your Founder Archetype Signal\u2122',
+      buildAccSection(1, 'Founder Authority Readiness Score™',
+        buildAuthorityScoreSection(record)),
+      buildAccSection(2, 'Your Founder Archetype Signal™',
         buildArchetypeSection(record.archetypeSignal, sects.archetypeSection)),
-      buildAccSection(4, 'What We Need to Tighten',
+      buildAccSection(3, 'What We Need to Tighten',
         buildTightenSection(sects.tightenSection)),
-      buildAccSection(5, 'What Comes Next',
+      buildAccSection(4, 'What Comes Next',
         buildNextSection(calendlyUrl)),
     ].join('');
 
@@ -2547,6 +2532,10 @@ function buildAccSection(idx, title, bodyHtml) {
         '</div>';
     }).join('');
     return '<div class="soul-composite">' + escHtml(String(composite)) +
+        '<span class="soul-composite-denom"> / 10</span></div>' +
+        '<div class="content-rule-wrap"><hr class="content-rule"></div>' +
+        '<div class="score-sub-rows">' + subRows + '</div>' +
+        '<p class="diag-closing">Composite reflects S, O, and U — Legacy is observed and noted separately.</p>';
       '<span class="soul-composite-denom"> / 10</span></div>' +
       '<div class="content-rule-wrap"><hr class="content-rule"></div>' +
       '<div class="score-sub-rows">' + subRows + '</div>';
@@ -2564,67 +2553,23 @@ function buildAccSection(idx, title, bodyHtml) {
     return rows + compRow;
   }
 
-  function buildBrandIndexSection(record) {
-    var cats = [
-      { label: 'Identity Clarity',         value: record.biiIdentityClarity },
-      { label: 'Audience Focus',           value: record.biiAudienceFocus },
-      { label: 'Story Power',              value: record.biiStoryPower },
-      { label: 'Differentiation Strength', value: record.biiDifferentiationStrength },
-      { label: 'Visibility Engine',        value: record.biiVisibilityEngine },
-    ];
-    var vals = cats.map(function(c) { return c.value ? parseFloat(c.value) : NaN; });
-    var allValid = vals.every(function(v) { return !isNaN(v); });
-    var composite = allValid ? vals.reduce(function(a,b){return a+b;},0) : null;
-    return '<p class="diagnostic-subtitle">Measures current brand strength.</p>' +
-      buildDiagSection(cats, composite, 100);
-  }
-
-  function buildFounderScorecardSection(record) {
-    var cats = [
-      { label: 'Identity Clarity',          value: record.fisIdentityClarity },
-      { label: 'Audience Definition',       value: record.fisAudienceDefinition },
-      { label: 'Narrative Strength',        value: record.fisNarrativeStrength },
-      { label: 'Differentiation',           value: record.fisDifferentiation },
-      { label: 'Visibility Infrastructure', value: record.fisVisibilityInfrastructure },
-    ];
-    return '<p class="diagnostic-subtitle">Measures founder readiness to lead.</p>' +
-      buildDiagSection(cats, null, null) +
-      '<p class="diag-closing">These reflect early signals \u2014 not a final diagnosis, but areas for further clarity.</p>';
-  }
-
-  function buildArchetypeSection(archetype, rawText) {
-    return '<div class="archetype-name">' + escHtml(archetype || '\u2014') + '</div>' +
-      '<div class="archetype-body">' + renderMarkdown(rawText) + '</div>';
-  }
-
-  function buildTightenSection(rawText) {
-    return '<div class="tighten-body">' + renderMarkdown(rawText) + '</div>';
-  }
-
-  function buildNextSection(calendlyUrl) {
-    return '<div class="next-body">' +
-      '<p>Your S.O.U.L. Code Discovery is complete. What you just experienced was the first step \u2014 excavating the story, beliefs, and identity signals that make your brand uniquely yours.</p>' +
-      '<p>The Brand Growth Blueprint\u2122 session is where Travis Robinson takes everything surfaced here and builds it into a strategic direction specific to you. Your S.O.U.L. Code\u2122 gets confirmed. Your Founder Archetype\u2122 gets revealed. And the brand that\u2019s been inside you all along starts to take shape.</p>' +
-      '<p>Discovery gave us the raw material. The Blueprint session is where we build.</p>' +
-      '</div>' +
-      '<a href="' + escHtml(calendlyUrl) + '" target="_blank" class="btn-calendly">Schedule Your Brand Growth Blueprint\u2122 Session \u2192</a>';
-  }
-
-// ══════════════════════════════════════
-// ADMIN PANEL
-// ══════════════════════════════════════
-function adminLogin() {
-  const pwd = document.getElementById('admin-password').value;
-  const err = document.getElementById('login-error');
-
-  if (pwd === CONFIG.adminPassword) {
-    err.textContent = '';
-    document.getElementById('admin-password').value = '';
-    loadAdminPanel();
-    showScreen('screen-admin');
-  } else {
-    err.textContent = 'Incorrect passphrase.';
-  }
+function buildAuthorityScoreSection(record) {
+  var rows = [
+    ['Self-Awareness',        record.farSelfAwareness],
+    ['Articulation',          record.farArticulation],
+    ['Emotional Clarity',     record.farEmotionalClarity],
+    ['Mission Focus',         record.farMissionFocus],
+    ['Belief Conviction',     record.farBeliefConviction],
+    ['Narrative Consistency', record.farNarrativeConsistency],
+  ];
+  var rowsHtml = rows.map(function(r) {
+    var val = r[1] ? r[1] + ' / 10' : '—';
+    return '<div class="diag-row"><span class="diag-label">' + r[0] + '</span><span class="diag-val">' + val + '</span></div>';
+  }).join('');
+  var comp = record.farComposite ? record.farComposite + ' / 10' : '—';
+  return '<p class="diagnostic-subtitle">A readiness assessment across six founder identity dimensions.</p>' +
+    rowsHtml +
+    '<div class="diag-row diag-composite"><span class="diag-label">Composite</span><span class="diag-val">' + comp + '</span></div>';
 }
 
 function loadAdminPanel() {
