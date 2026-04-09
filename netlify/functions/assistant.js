@@ -231,6 +231,11 @@ const {
 
       // GENERATE REPORT — server-side: run creation, structural validation, semantic eval, retry
       if (action === 'generate_report') {
+        await _addUserMessageToThread({
+          threadId,
+          content: "Generate Report Now",
+        });
+
         const result = await generateFounderReportWithRetry({
           threadId,
           assistantId,
