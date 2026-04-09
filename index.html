@@ -448,10 +448,11 @@
     color: rgba(250,248,244,0.25);
     cursor: pointer;
     padding: 0.5rem;
-    transition: color 0.3s ease;
+    transition: color 0.3s ease, transform 0.4s ease;
+    transform: translateY(200%);
   }
-
   .session-end-btn:hover { color: rgba(250,248,244,0.5); }
+  .session-end-btn.reveal { transform: translateY(0); }
 
   .begin-session-btn {
     background: var(--gold);
@@ -1361,7 +1362,7 @@
     <button class="begin-session-btn" id="begin-session-btn" onclick="beginSession()" style="display:none;">
       Begin My Session
     </button>
-    <button class="session-end-btn" id="session-end-btn" onclick="endSession()" style="display:none;">
+    <button class="session-end-btn" id="session-end-btn" onclick="endSession()">
       Complete Discovery Session
     </button>
   </div>
@@ -1587,7 +1588,6 @@ async function submitCapture() {
 function beginSession() {
   document.getElementById('begin-session-btn').style.display = 'none';
   document.getElementById('voice-btn').style.display = '';
-  document.getElementById('session-end-btn').style.display = '';
   var name = state.clientName || '';
   var email = state.clientEmail || '';
   var type = state.clientType === 'founder' ? 'Founder' : 'Artist';
@@ -1711,6 +1711,10 @@ async function getLatestMessage() {
   });
   hideThinking();
 
+  if (result.sessionComplete) {
+    var endBtn = document.getElementById('session-end-btn');
+    if (endBtn) endBtn.classList.add('reveal');
+  }
   const text = result.reply || '';
   if (!text) return;
 
