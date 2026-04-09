@@ -1517,7 +1517,8 @@ let state = {
   synthesis: window.speechSynthesis,
   sessionData: {},
   sessionCount: 0,
-  sessions: []
+  sessions: [],
+  isProcessing: false
 };
 
 // ══════════════════════════════════════
@@ -1615,6 +1616,12 @@ async function createThread() {
 
 async function sendToAssistant(userMessage) {
   if (!state.threadId) return;
+  if (state.isProcessing) return;
+
+  // Lock — prevent concurrent sends while a run is active
+  state.isProcessing = true;
+  var vBtn = document.getElementById('voice-btn');
+  if (vBtn) { vBtn.disabled = true; vBtn.style.opacity = '0.35'; }
 
   setVoiceStatus('thinking');
   showThinking();
@@ -1651,6 +1658,10 @@ async function sendToAssistant(userMessage) {
     hideThinking();
     console.error('Assistant call failed:', err);
     addMessage('assistant', 'Error: ' + err.message);
+  } finally {
+    // Unlock — re-enable mic regardless of success or failure
+    state.isProcessing = false;
+    if (vBtn) { vBtn.disabled = false; vBtn.style.opacity = ''; }
   }
 }
 
@@ -1829,6 +1840,7 @@ async function autoEndSession(parsed) {
 // VOICE — SPEECH RECOGNITION
 // ══════════════════════════════════════
 function toggleVoice() {
+  if (state.isProcessing) return;
   if (state.isListening) {
     stopListening();
   } else {
@@ -1885,7 +1897,7 @@ function startListening() {
       }
     }
 
-    // Auto-send after 2 seconds of silence
+    // Auto-send after 1 second of silence
     silenceTimer = setTimeout(() => {
       if (finalTranscript.trim()) {
         stopListening();
@@ -1893,9 +1905,11 @@ function startListening() {
         finalTranscript = '';
         addMessage('user', text);
         state.sessionData.transcript.push({ role: 'user', text });
+        setVoiceStatus('thinking');
+        showThinking();
         sendToAssistant(text);
       }
-    }, 2000);
+    }, 1000);
   };
 
   state.recognition.onerror = (event) => {
