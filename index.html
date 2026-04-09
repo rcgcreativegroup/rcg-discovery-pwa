@@ -2026,26 +2026,24 @@ function escHtml(s) {
 
 function renderMarkdown(text) {
   if (!text) return '<p class="acc-empty">Content will appear here after your session.</p>';
-  let html = escHtml(text);
-  // Horizontal rules
-  html = html.replace(/^[─━-]{4,}$/gm, '<hr class="content-rule">');
-  // Bold
-  html = html.replace(/**(.+?)**/g, '<strong>$1</strong>');
-  // Italic phrases / session quotes (lines starting with " or > or *)
-  html = html.replace(/^[&gt;*]s*"?(.+?)"?s*$/gm, '<p class="session-quote">$1</p>');
+  let h = escHtml(text);
+  // Horizontal rules (──── or ━━━━ sequences)
+  h = h.replace(new RegExp('^[\\u2500\\u2501\\u2014-]{4,}$', 'gm'), '<hr class="content-rule">');
+  // Bold (**text**)
+  h = h.replace(new RegExp('\\*\\*(.+?)\\*\\*', 'g'), '<strong>$1</strong>');
   // Subject line
-  html = html.replace(/^(Subject:)(.+)$/gm, '<p class="email-subject-line"><span>$1</span>$2</p>');
-  // Double newline = paragraph
-  html = html.split(/
-{2,}/).map(p => {
+  h = h.replace(new RegExp('^(Subject:)(.+)$', 'gm'), '<p class="email-subject-line"><span>$1</span>$2</p>');
+  // Quoted lines (starting with > )
+  h = h.replace(new RegExp('^&gt;\\s*(.+)$', 'gm'), '<p class="session-quote">$1</p>');
+  // Paragraphs — split on double newline
+  const paras = h.split(new RegExp('\n{2,}'));
+  h = paras.map(function(p) {
     p = p.trim();
-    if (!p || p.startsWith('<')) return p;
-    return '<p>' + p.replace(/
-/g, '<br>') + '</p>';
+    if (!p || p.charAt(0) === '<') return p;
+    return '<p>' + p.split('\n').join('<br>') + '</p>';
   }).join('');
-  return html;
+  return h;
 }
-
 function buildAccSection(idx, title, bodyHtml) {
   return `
     <div class="accordion-section" id="acc-${idx}">
