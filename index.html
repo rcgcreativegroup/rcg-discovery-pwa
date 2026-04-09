@@ -1754,35 +1754,43 @@ async function getLatestMessage() {
 // REPORT PARSING
 // ══════════════════════════════════════
 function parseReport(fullText) {
-  const MARKER = '━━━ INTERNAL DATA BLOCK — BEGIN ━━━';
-  const markerIdx = fullText.indexOf(MARKER);
-  const clientSection   = markerIdx >= 0 ? fullText.slice(0, markerIdx).trim() : fullText;
-  const internalSection = markerIdx >= 0 ? fullText.slice(markerIdx + MARKER.length).trim() : '';
+  // Locate the internal block using partial match (robust to Unicode variations)
+  var blockIdx = fullText.indexOf('INTERNAL DATA BLOCK');
+  // Walk back to start of that line so we capture the full separator
+  var lineStart = blockIdx !== -1 ? fullText.lastIndexOf('\n', blockIdx) : -1;
+  var cutAt = lineStart !== -1 ? lineStart : blockIdx;
+  var clientSection   = cutAt >= 0 ? fullText.slice(0, cutAt).trim() : fullText.trim();
+  var internalSection = blockIdx >= 0 ? fullText.slice(blockIdx).trim() : '';
 
-  const soulMatch = internalSection.match(/soul_score\s*[:\-]\s*([\d.]+)/i);
-  const soulScore = soulMatch ? soulMatch[1].trim() : '';
+  // soul_score: — accepts "soul_score: 72", "SOUL SCORE: 72", "S.O.U.L Score: 72"
+  var soulMatch = internalSection.match(/s\.?o\.?u\.?l\.?[_\s]*score\s*[:\-]\s*([\d.]+)/i);
+  var soulScore = soulMatch ? soulMatch[1].trim() : '';
 
-  const archMatch = internalSection.match(/archetype[_\s]signal\s*[:\-]\s*([^\n]+)/i);
-  const archetypeSignal = archMatch ? archMatch[1].trim() : '';
+  // archetype_signal:
+  var archMatch = internalSection.match(/archetype[_\s]signal\s*[:\-]\s*([^\n]+)/i);
+  var archetypeSignal = archMatch ? archMatch[1].trim() : '';
 
-  const notesMatch = internalSection.match(/strategist\s+notes\s*[:\-]?\s*\n([\s\S]*?)(?=\n#{1,3}\s|\n\*{2}|\n\u2501|\nGPT|$)/i);
-  const strategistNotes = notesMatch ? notesMatch[1].trim() : '';
+  // strategist_notes: multiline until next section header or end
+  var notesMatch = internalSection.match(/strategist[_\s]*notes\s*[:\-]?\s*\n([\s\S]*?)(?=\n[A-Z][^\n]{0,40}[:\-]|\n\u2501|\nGPT|$)/i);
+  var strategistNotes = notesMatch ? notesMatch[1].trim() : '';
 
-  const gpt2Match = internalSection.match(/GPT\s*2\s+Input\s+Block[\s\S]*?\n([\s\S]*?)(?=\n\u2501|$)/i);
-  const strategistInput = gpt2Match ? gpt2Match[1].trim() : internalSection;
+  // strategist_input / GPT 2 input block — everything from that header to end
+  var gpt2Match = internalSection.match(/gpt[_\s]*2[_\s]*input[^\n]*\n([\s\S]*?)(?=\n\u2501|$)/i);
+  var strategistInput = gpt2Match ? gpt2Match[1].trim() : internalSection;
 
-  const transcriptMatch = internalSection.match(/(Q:[\s\S]+)/i);
-  const transcript = transcriptMatch ? transcriptMatch[1].trim() : '';
+  // transcript lines starting with Q:
+  var transcriptMatch = internalSection.match(/(Q:[\s\S]+)/i);
+  var transcript = transcriptMatch ? transcriptMatch[1].trim() : '';
 
   return {
-    rawReport: fullText,
-    clientSection,
-    internalSection,
-    soulScore,
-    archetypeSignal,
-    strategistNotes,
-    strategistInput,
-    transcript,
+    rawReport:          fullText,
+    clientSection:      clientSection,
+    internalSection:    internalSection,
+    soulScore:          soulScore,
+    archetypeSignal:    archetypeSignal,
+    strategistNotes:    strategistNotes,
+    strategistInput:    strategistInput,
+    transcript:         transcript,
     clientEmailContent: clientSection
   };
 }
