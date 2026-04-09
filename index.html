@@ -1518,7 +1518,8 @@ let state = {
   sessionData: {},
   sessionCount: 0,
   sessions: [],
-  isProcessing: false
+  isProcessing: false,
+  reportTriggered: false   // one-time lock: prevent double 'Generate Report Now'
 };
 
 // ══════════════════════════════════════
@@ -1732,6 +1733,17 @@ async function pollRun(runId) {
   addMessage('assistant', "I'm ready for your next response.");
 }
 
+// Normalize text for resilient handoff-phrase matching:
+// tolerates curly quotes, extra whitespace, trailing newlines
+function normalizeForMatch(s) {
+  return (s || '')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 async function getLatestMessage() {
   const result = await callApi({
     action: 'get_messages',
@@ -1743,25 +1755,30 @@ async function getLatestMessage() {
   const text = result.reply || '';
   if (!text) return;
 
-  // ── HANDOFF PHRASE DETECTION ──────────────────────────────────────────────
-  // When the assistant says the handoff phrase, the PWA auto-sends "Generate Report Now"
-  // to trigger report generation (per v8.2 instruction protocol).
-  var HANDOFF_PHRASE = "I've captured everything I need";
-  var hasHandoff = text.includes(HANDOFF_PHRASE) || text.includes('Generate Report Now');
+  // ── HANDOFF PHRASE DETECTION ─────────────────────────────────────────────
+  // This response is the full assistant message (pollRun only calls us after
+  // status === "completed"), so it is safe to parse the entire text now.
+  // Detection is normalized: curly quotes, extra spaces, case differences are
+  // all tolerated. The core meaning "i've captured everything i need" is anchor.
+  var HANDOFF_CORE = "i've captured everything i need";
+  var normText = normalizeForMatch(text);
+  var hasHandoff = normText.includes(HANDOFF_CORE);
 
-  if (hasHandoff && !state.reportPhaseActive) {
-    // Show the assistant message so the user can hear the handoff phrase
+  // One-time lock — prevents double-send if somehow called twice
+  if (hasHandoff && !state.reportPhaseActive && !state.reportTriggered) {
+    state.reportTriggered = true;
+
+    // Show the phrase so user hears it (TTS) and sees the transition
     addMessage('assistant', text);
     state.sessionData.transcript.push({ role: 'assistant', text });
-    // Speak the phrase if TTS is active
     state.pendingSpeech = text;
     setVoiceStatus('tap-to-hear');
 
-    // Stop voice capture — voice session is done
+    // Stop voice capture — voice session is complete
     stopListening();
     state.reportPhaseActive = true;
 
-    // Auto-send "Generate Report Now" after the current run lock is released
+    // Wait for current run lock to release, then auto-send the report trigger
     setTimeout(function() {
       addMessage('user', 'Generate Report Now');
       state.sessionData.transcript.push({ role: 'user', text: 'Generate Report Now' });
@@ -1770,7 +1787,9 @@ async function getLatestMessage() {
     return;
   }
 
-  // ── INTERNAL DATA BLOCK — silent backend processing ───────────────────────
+  // ── INTERNAL DATA BLOCK — full response received, safe to parse ──────────
+  // The block is only present after report generation, which happens AFTER the
+  // "Generate Report Now" trigger — so there is no risk of partial parsing.
   var hasBlock = result.sessionComplete || text.indexOf('INTERNAL DATA BLOCK') !== -1;
 
   if (hasBlock) {
@@ -1780,20 +1799,21 @@ async function getLatestMessage() {
     state.pendingSpeech = null;
     state.isSpeaking = false;
 
-    // Strip internal block from display — client only sees their output
+    // Strip the internal block from the client-visible display.
+    // Walk back to the start of the line so the separator line is also removed.
     var blockIdx = text.indexOf('INTERNAL DATA BLOCK');
     var lineStart = text.lastIndexOf('\n', blockIdx);
     var cutAt = lineStart !== -1 ? lineStart : blockIdx;
     var clientDisplay = blockIdx !== -1 ? text.slice(0, cutAt).trim() : text.trim();
     if (clientDisplay) addMessage('assistant', clientDisplay);
 
-    // Parse report silently and end session — internal block goes to webhook/email only
+    // Route internal block silently to backend (webhook / email)
     var parsed = parseReport(text);
     await autoEndSession(parsed);
     return;
   }
 
-  // ── Normal discovery message ───────────────────────────────────────────────
+  // ── Normal discovery message ──────────────────────────────────────────────
   addMessage('assistant', text);
   if (!state.reportPhaseActive) {
     state.pendingSpeech = text;
