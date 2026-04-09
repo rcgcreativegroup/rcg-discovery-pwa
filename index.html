@@ -1448,7 +1448,7 @@
 const CONFIG = {
   apiBase: '/.netlify/functions/assistant',
   adminPassword: 'rcg2026',
-  calendlyUrl: 'https://calendly.com/travisrobinsonlive/30min'
+  calendlyUrl: '' // loaded from CALENDLY env var via get_config
 };
 
 // EmailJS — replace these with your actual values from emailjs.com
@@ -1468,6 +1468,15 @@ async function callApi(payload) {
     throw new Error('Server error ' + res.status + ': ' + text.slice(0, 300));
   }
   return res.json();
+}
+
+async function loadConfig() {
+  try {
+    const data = await callApi({ action: 'get_config' });
+    if (data.calendlyUrl) CONFIG.calendlyUrl = data.calendlyUrl;
+  } catch (err) {
+    console.warn('Config load failed:', err);
+  }
 }
 
 // ══════════════════════════════════════
@@ -2373,6 +2382,9 @@ function animateBars(active) {
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+// Load server config (Calendly URL etc)
+loadConfig();
 
 // Load voices for speech synthesis
 if (window.speechSynthesis) {
