@@ -460,133 +460,254 @@
     overflow-y: auto;
   }
 
-  .results-container {
+  /* ── RESULTS SCREEN ── */
+  .results-screen {
+    justify-content: flex-start;
+    padding: 0;
+    overflow-y: auto;
+    background: var(--black);
+  }
+
+  .results-wrap {
     width: 100%;
     max-width: 560px;
     margin: 0 auto;
-    padding: 4rem 2rem 6rem;
+    padding: 3rem 1.5rem 5rem;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 0;
   }
 
-  .results-mark {
-    font-family: var(--font-display);
-    font-size: 0.7rem;
+  /* Header */
+  .results-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 2rem;
+  }
+
+  .results-wordmark {
+    font-family: var(--font-body);
+    font-size: 0.6rem;
     letter-spacing: 0.3em;
-    color: var(--gold);
     text-transform: uppercase;
-    font-weight: 300;
-    text-align: center;
+    color: var(--gold);
+    text-decoration: none;
+    font-weight: 400;
   }
 
-  .results-headline {
+  .results-complete-label {
     font-family: var(--font-display);
+    font-size: 18px;
     font-weight: 300;
-    font-size: clamp(1.8rem, 6vw, 2.6rem);
-    line-height: 1.15;
+    color: var(--gold);
     text-align: center;
-    color: var(--white);
+    line-height: 1.4;
+    margin-top: 0.5rem;
   }
 
-  .results-headline em {
+  .results-name-line {
+    font-family: var(--font-display);
     font-style: italic;
-    color: var(--gold-light);
-  }
-
-  .results-divider {
-    width: 40px;
-    height: 1px;
-    background: var(--gold-border);
-    margin: 0 auto;
-  }
-
-  .results-intro {
-    font-family: var(--font-body);
+    font-size: 22px;
     font-weight: 300;
-    font-size: 0.9rem;
-    line-height: 1.75;
-    color: var(--muted);
+    color: var(--white);
     text-align: center;
+    line-height: 1.45;
   }
 
-  .results-highlights {
+  .results-name-line em { font-style: italic; }
+
+  .results-header-rule {
+    width: 100%;
+    height: 1px;
+    background: rgba(201,165,90,0.3);
+    margin-top: 0.75rem;
+  }
+
+  /* Accordion */
+  .results-accordion {
     display: flex;
     flex-direction: column;
-    gap: 1px;
-    border: 1px solid var(--gold-border);
+    border-top: 1px solid rgba(201,165,90,0.3);
   }
 
-  .highlight-item {
-    padding: 1.2rem 1.5rem;
-    border-bottom: 1px solid rgba(201,169,110,0.1);
-    background: var(--gold-dim);
+  .accordion-section {
+    border-bottom: 1px solid rgba(201,165,90,0.3);
   }
 
-  .highlight-item:last-child { border-bottom: none; }
-
-  .highlight-label {
-    font-family: var(--font-body);
-    font-size: 0.6rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--gold);
-    margin-bottom: 0.4rem;
-    font-weight: 400;
-  }
-
-  .highlight-value {
-    font-family: var(--font-display);
-    font-size: clamp(1rem, 3vw, 1.15rem);
-    font-weight: 300;
-    color: var(--white);
-    line-height: 1.5;
-  }
-
-  .next-steps-block {
-    border: 1px solid var(--gold-border);
-    padding: 2rem;
+  .accordion-hdr {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 1.1rem 0;
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    gap: 0.75rem;
   }
 
-  .next-steps-label {
-    font-family: var(--font-body);
-    font-size: 0.6rem;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: var(--gold);
-    font-weight: 400;
-  }
-
-  .next-steps-text {
+  .accordion-title {
     font-family: var(--font-display);
-    font-size: clamp(1rem, 3vw, 1.1rem);
+    font-size: 16px;
     font-weight: 300;
-    line-height: 1.65;
     color: var(--white);
+    text-align: left;
+    line-height: 1.3;
   }
 
-  .btn-book {
+  .accordion-chevron {
+    font-family: var(--font-body);
+    font-size: 1.2rem;
+    color: var(--gold);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .accordion-hdr.open .accordion-chevron { transform: rotate(90deg); }
+
+  .accordion-body {
+    overflow: hidden;
+  }
+
+  .accordion-body[hidden] { display: none; }
+
+  .accordion-inner {
+    padding: 0 0 1.75rem;
+  }
+
+  /* Score Section */
+  .soul-composite {
+    font-family: var(--font-display);
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .soul-composite-denom {
+    font-size: 24px;
+    color: rgba(201,165,90,0.6);
+  }
+
+  .soul-composite-sub {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .content-rule-wrap { margin: 1rem 0; }
+
+  .score-raw p, .email-body p, .archetype-body p,
+  .tighten-body p, .next-body p {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--white);
+    line-height: 1.7;
+    margin-bottom: 0.85rem;
+  }
+
+  /* Email Section */
+  .email-body .email-subject-line {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 0.02em;
+    margin-bottom: 1rem;
+    text-transform: none;
+  }
+
+  .email-body .email-subject-line span {
+    font-weight: 600;
+    margin-right: 0.2em;
+  }
+
+  .session-quote {
+    font-family: var(--font-display) !important;
+    font-style: italic !important;
+    font-size: 16px !important;
+    color: var(--white) !important;
+    line-height: 1.6 !important;
+    margin: 1rem 0 !important;
+    padding-left: 1rem;
+    border-left: 2px solid rgba(201,165,90,0.4);
+  }
+
+  .acc-empty {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* Archetype Section */
+  .archetype-name {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 1.25rem;
+  }
+
+  /* Calendly CTA */
+  .btn-calendly {
     display: block;
     width: 100%;
-    padding: 1.3rem 2rem;
+    padding: 14px 1.5rem;
     background: var(--gold);
     color: var(--black);
     font-family: var(--font-body);
     font-weight: 500;
-    font-size: 0.8rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
+    font-size: 15px;
     text-align: center;
     text-decoration: none;
-    cursor: pointer;
     border: none;
-    transition: all 0.3s ease;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    transition: background 0.2s ease;
+    box-sizing: border-box;
   }
 
-  .btn-book:hover { background: var(--gold-light); }
+  .btn-calendly:hover { background: var(--gold-light); }
+
+  /* Footer */
+  .results-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(201,165,90,0.2);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .results-footer-mark {
+    font-family: var(--font-body);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .results-footer-tagline {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  hr.content-rule {
+    border: none;
+    border-top: 1px solid rgba(201,165,90,0.3);
+    margin: 1rem 0;
+  }
 
   /* ── ADMIN SCREEN ── */
   #screen-admin {
@@ -1230,30 +1351,25 @@
 <!-- ══════════════════════════════════════
      RESULTS SCREEN
 ══════════════════════════════════════ -->
-<div id="screen-results" class="screen">
-  <div class="results-container">
-    <div class="results-mark">Robinson Creative Group</div>
-    <h1 class="results-headline">Your S.O.U.L. Code<br>Discovery Is <em>Complete</em></h1>
-    <p class="results-client-name" id="results-client-name"></p>
-    <div class="results-divider"></div>
-    <p class="results-intro">
-      Your discovery session has been received. Travis Robinson will review your S.O.U.L. Code profile and reach out to schedule your Brand Growth Blueprint™ session.
-    </p>
+<div id="screen-results" class="screen results-screen">
+  <div class="results-wrap">
 
-    <div class="results-highlights" id="results-highlights">
-      <!-- Populated dynamically -->
+    <div class="results-header">
+      <a href="https://robinsoncreativegroup.com" target="_blank" class="results-wordmark">Robinson Creative Group</a>
+      <p class="results-complete-label">Your S.O.U.L. Code Discovery™<br>is complete.</p>
+      <p class="results-name-line" id="results-name-line"></p>
+      <div class="results-header-rule"></div>
     </div>
 
-    <div class="next-steps-block">
-      <div class="next-steps-label">Your Next Step</div>
-      <div class="next-steps-text">
-        Book your Brand Growth Blueprint™ session. This is where Travis reveals your S.O.U.L. Code™, confirms your Founder Archetype™, and begins building the strategy behind your brand.
-      </div>
+    <div class="results-accordion" id="results-accordion">
+      <!-- Populated by showResultsScreen() -->
     </div>
 
-    <a href="https://calendly.com/travisrobinsonlive/30min" target="_blank" class="btn-book">
-      Book Your Blueprint Session →
-    </a>
+    <div class="results-footer">
+      <div class="results-footer-mark">Robinson Creative Group</div>
+      <div class="results-footer-tagline">Products are copyable. People are not.™</div>
+    </div>
+
   </div>
 </div>
 
@@ -1859,30 +1975,155 @@ function sendEmailJS(record) {
 }
 
 function showResultsScreen(record) {
-  const typeLabel = record.clientType === 'founder' ? 'Founder' : 'Artist';
-  const msgCount = record.transcript ? record.transcript.filter(m => m.role === 'user').length : 0;
-  const dateStr = new Date(record.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const name = record.clientName || '';
+  const calendlyUrl = CONFIG.calendlyUrl || 'https://calendly.com/travisrobinsonlive/30min';
 
-  document.getElementById('results-client-name').textContent = name ? 'Thank you, ' + name + '.' : '';
+  // Header
+  const nameLine = document.getElementById('results-name-line');
+  if (nameLine) nameLine.innerHTML = name
+    ? '<em>' + escHtml(name) + ',</em><br>here is what your session revealed.'
+    : 'Here is what your session revealed.';
 
-  const highlights = document.getElementById('results-highlights');
-  highlights.innerHTML = `
-    <div class="highlight-item">
-      <div class="highlight-label">Session Type</div>
-      <div class="highlight-value">${typeLabel} Identity Discovery</div>
-    </div>
-    <div class="highlight-item">
-      <div class="highlight-label">Completed</div>
-      <div class="highlight-value">${dateStr}</div>
-    </div>
-    <div class="highlight-item">
-      <div class="highlight-label">Status</div>
-      <div class="highlight-value">Received — Awaiting Blueprint Session</div>
-    </div>
-  `;
+  // Parse client output into sections
+  const cx = record.clientEmailContent || record.rawReport || '';
+  const sects = parseClientSections(cx);
+
+  // Build accordion
+  const accordion = document.getElementById('results-accordion');
+  if (!accordion) { showScreen('screen-results'); return; }
+
+  const score = record.soulScore || '—';
+  const archetype = record.archetypeSignal || '—';
+
+  accordion.innerHTML = [
+    buildAccSection(0, 'Your S.O.U.L Identity Score™',
+      buildScoreSection(score, sects.scoreSection)),
+    buildAccSection(1, 'Your Session Email',
+      buildEmailSection(sects.emailSection, name)),
+    buildAccSection(2, 'Your Founder Archetype Signal™',
+      buildArchetypeSection(archetype, sects.archetypeSection)),
+    buildAccSection(3, 'What We Need to Tighten',
+      buildTightenSection(sects.tightenSection)),
+    buildAccSection(4, 'What Comes Next',
+      buildNextSection(sects.nextStepsSection, calendlyUrl))
+  ].join('');
 
   showScreen('screen-results');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderMarkdown(text) {
+  if (!text) return '<p class="acc-empty">Content will appear here after your session.</p>';
+  let html = escHtml(text);
+  // Horizontal rules
+  html = html.replace(/^[─━-]{4,}$/gm, '<hr class="content-rule">');
+  // Bold
+  html = html.replace(/**(.+?)**/g, '<strong>$1</strong>');
+  // Italic phrases / session quotes (lines starting with " or > or *)
+  html = html.replace(/^[&gt;*]s*"?(.+?)"?s*$/gm, '<p class="session-quote">$1</p>');
+  // Subject line
+  html = html.replace(/^(Subject:)(.+)$/gm, '<p class="email-subject-line"><span>$1</span>$2</p>');
+  // Double newline = paragraph
+  html = html.split(/
+{2,}/).map(p => {
+    p = p.trim();
+    if (!p || p.startsWith('<')) return p;
+    return '<p>' + p.replace(/
+/g, '<br>') + '</p>';
+  }).join('');
+  return html;
+}
+
+function buildAccSection(idx, title, bodyHtml) {
+  return `
+    <div class="accordion-section" id="acc-${idx}">
+      <button class="accordion-hdr" onclick="toggleAcc(${idx})" aria-expanded="false">
+        <span class="accordion-title">${escHtml(title)}</span>
+        <span class="accordion-chevron">›</span>
+      </button>
+      <div class="accordion-body" id="acc-body-${idx}" hidden>
+        <div class="accordion-inner">${bodyHtml}</div>
+      </div>
+    </div>`;
+}
+
+function toggleAcc(idx) {
+  const sections = document.querySelectorAll('.accordion-section');
+  sections.forEach((sec, i) => {
+    const hdr = sec.querySelector('.accordion-hdr');
+    const body = sec.querySelector('.accordion-body');
+    if (i === idx) {
+      const isOpen = !body.hidden;
+      body.hidden = isOpen;
+      hdr.setAttribute('aria-expanded', String(!isOpen));
+      hdr.classList.toggle('open', !isOpen);
+    } else {
+      body.hidden = true;
+      hdr.setAttribute('aria-expanded', 'false');
+      hdr.classList.remove('open');
+    }
+  });
+}
+
+function parseClientSections(text) {
+  const safe = text || '';
+  // Try to find sections by common header patterns
+  const scoreMatch = safe.match(/^([sS]*?)(?=subject:|dear |---|
+
+[A-Z][a-z]+ [A-Z])/i);
+  const emailMatch = safe.match(/(?:subject:|dear )([sS]*?)(?=founder archetype|archetype signal|what we need|what comes next|$)/i);
+  const archMatch = safe.match(/(?:founders+archetype|archetypes+signal)[^
+]*
+([sS]*?)(?=what we need|what comes next|$)/i);
+  const tightenMatch = safe.match(/whats+wes+needs+tos+tighten[^
+]*
+([sS]*?)(?=what comes next|$)/i);
+  const nextMatch = safe.match(/whats+comess+next[^
+]*
+([sS]*?)$/i);
+  return {
+    scoreSection: scoreMatch ? scoreMatch[1].trim() : '',
+    emailSection: emailMatch ? (emailMatch[0]).trim() : safe,
+    archetypeSection: archMatch ? archMatch[1].trim() : '',
+    tightenSection: tightenMatch ? tightenMatch[1].trim() : '',
+    nextStepsSection: nextMatch ? nextMatch[1].trim() : ''
+  };
+}
+
+function buildScoreSection(composite, rawText) {
+  return `
+    <div class="soul-composite">${escHtml(composite)}<span class="soul-composite-denom"> / 10</span></div>
+    <p class="soul-composite-sub">A discovery-based measure of how clearly your Story, Origin, Uniqueness, and Legacy came through in your session.</p>
+    <div class="content-rule-wrap"><hr class="content-rule"></div>
+    <div class="score-raw">${renderMarkdown(rawText)}</div>
+  `;
+}
+
+function buildEmailSection(rawText, name) {
+  return `<div class="email-body">${renderMarkdown(rawText)}</div>`;
+}
+
+function buildArchetypeSection(archetype, rawText) {
+  return `
+    <div class="archetype-name">${escHtml(archetype)}</div>
+    <div class="archetype-body">${renderMarkdown(rawText)}</div>
+  `;
+}
+
+function buildTightenSection(rawText) {
+  return `<div class="tighten-body">${renderMarkdown(rawText)}</div>`;
+}
+
+function buildNextSection(rawText, calendlyUrl) {
+  return `
+    <div class="next-body">${renderMarkdown(rawText)}</div>
+    <a href="${escHtml(calendlyUrl)}" target="_blank" class="btn-calendly">
+      Schedule Your Brand Growth Blueprint™ Session
+    </a>
+  `;
 }
 
 // ══════════════════════════════════════
