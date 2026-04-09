@@ -58,6 +58,11 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
       const { action, threadId, clientType, message, runId } = JSON.parse(event.body);
       const assistantId = clientType === 'founder' ? FOUNDER_ASSISTANT_ID : ARTIST_ASSISTANT_ID;
 
+      // GET CONFIG (exposes server env vars to client)
+      if (action === 'get_config') {
+        return { statusCode: 200, headers, body: JSON.stringify({ calendlyUrl: process.env.CALENDLY || '' }) };
+      }
+
       // CREATE THREAD
       if (action === 'create_thread') {
         const thread = await openaiCall('/threads', 'POST', {});
