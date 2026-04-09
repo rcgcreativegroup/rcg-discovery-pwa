@@ -2077,26 +2077,23 @@ function toggleAcc(idx) {
 
 function parseClientSections(text) {
   const safe = text || '';
-  // Try to find sections by common header patterns
-  const scoreMatch = safe.match(/^([sS]*?)(?=subject:|dear |---|
-
-[A-Z][a-z]+ [A-Z])/i);
-  const emailMatch = safe.match(/(?:subject:|dear )([sS]*?)(?=founder archetype|archetype signal|what we need|what comes next|$)/i);
-  const archMatch = safe.match(/(?:founders+archetype|archetypes+signal)[^
-]*
-([sS]*?)(?=what we need|what comes next|$)/i);
-  const tightenMatch = safe.match(/whats+wes+needs+tos+tighten[^
-]*
-([sS]*?)(?=what comes next|$)/i);
-  const nextMatch = safe.match(/whats+comess+next[^
-]*
-([sS]*?)$/i);
+  // Use new RegExp to avoid regex-literal escaping issues in HTML files
+  var rScore    = new RegExp('^([\\s\\S]*?)(?=subject:|dear |---)', 'i');
+  var rEmail    = new RegExp('(?:subject:|dear )([\\s\\S]*?)(?=founder archetype|archetype signal|what we need|what comes next|$)', 'i');
+  var rArch     = new RegExp('(?:founder[\\s]+archetype|archetype[\\s]+signal)[^\\n]*\\n([\\s\\S]*?)(?=what we need|what comes next|$)', 'i');
+  var rTighten  = new RegExp('what[\\s]+we[\\s]+need[\\s]+to[\\s]+tighten[^\\n]*\\n([\\s\\S]*?)(?=what comes next|$)', 'i');
+  var rNext     = new RegExp('what[\\s]+comes[\\s]+next[^\\n]*\\n([\\s\\S]*)$', 'i');
+  var scoreMatch    = safe.match(rScore);
+  var emailMatch    = safe.match(rEmail);
+  var archMatch     = safe.match(rArch);
+  var tightenMatch  = safe.match(rTighten);
+  var nextMatch     = safe.match(rNext);
   return {
-    scoreSection: scoreMatch ? scoreMatch[1].trim() : '',
-    emailSection: emailMatch ? (emailMatch[0]).trim() : safe,
-    archetypeSection: archMatch ? archMatch[1].trim() : '',
-    tightenSection: tightenMatch ? tightenMatch[1].trim() : '',
-    nextStepsSection: nextMatch ? nextMatch[1].trim() : ''
+    scoreSection:     scoreMatch    ? scoreMatch[1].trim()   : '',
+    emailSection:     emailMatch    ? emailMatch[0].trim()   : safe,
+    archetypeSection: archMatch     ? archMatch[1].trim()    : '',
+    tightenSection:   tightenMatch  ? tightenMatch[1].trim() : '',
+    nextStepsSection: nextMatch     ? nextMatch[1].trim()    : ''
   };
 }
 
