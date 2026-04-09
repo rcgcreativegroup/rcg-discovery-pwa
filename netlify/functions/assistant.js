@@ -160,8 +160,18 @@ const {
       }),
     });
 
+
+    if (!response.ok) {
+      throw new Error(`Semantic API error: ${response.status}`);
+    }
+
     const data = await response.json();
     const text = data.choices?.[0]?.message?.content || "";
+
+    if (!text) {
+      throw new Error("Semantic evaluator returned empty response.");
+    }
+
     return JSON.parse(text);
   }
 
