@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -957,6 +958,173 @@
   ::-webkit-scrollbar { width: 2px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(201,169,110,0.2); }
+
+    /* ── CAPTURE SCREEN ── */
+    #screen-capture { gap: 1.5rem; }
+
+    .capture-sub {
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 200;
+      text-align: center;
+      letter-spacing: 0.03em;
+      max-width: 280px;
+    }
+
+    .capture-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .capture-error {
+      font-size: 0.7rem;
+      color: #C9748A;
+      letter-spacing: 0.1em;
+      min-height: 1rem;
+      text-align: center;
+    }
+
+    /* ── RESULTS SCREEN UPDATES ── */
+    .results-client-name {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 300;
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── ADMIN TWO-VIEW ── */
+    .btn-back {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-back:hover { color: var(--gold); }
+
+    .session-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 1.5rem;
+      border-bottom: 1px solid rgba(201,169,110,0.15);
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .session-row:first-child { border-top: 1px solid rgba(201,169,110,0.15); }
+    .session-row:hover { background: rgba(201,169,110,0.04); }
+
+    .session-row-left { display: flex; flex-direction: column; gap: 0.3rem; }
+
+    .session-row-name {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 300;
+      color: var(--white);
+    }
+
+    .session-row-meta {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      font-weight: 300;
+      text-transform: uppercase;
+    }
+
+    .session-row-right { display: flex; align-items: center; gap: 1rem; }
+
+    .btn-review {
+      background: none;
+      border: 1px solid rgba(201,169,110,0.2);
+      color: var(--gold);
+      font-family: var(--font-body);
+      font-size: 0.58rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-review:hover { background: var(--gold-dim); border-color: var(--gold); }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: rgba(201,169,110,0.1);
+    }
+
+    .metric-block { background: #0d0d0d; padding: 1.2rem; }
+
+    .metric-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 300;
+      margin-bottom: 0.4rem;
+    }
+
+    .metric-value {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 300;
+      color: var(--gold);
+    }
+
+    .detail-client-name {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 300;
+      color: var(--white);
+      margin-bottom: 0.5rem;
+    }
+
+    .detail-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .detail-date {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 300;
+    }
+
+    .strategist-input-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.8rem 1rem;
+      border: 1px solid rgba(201,169,110,0.15);
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .strategist-input-header:hover { background: rgba(201,169,110,0.05); }
+
+    .strategist-input-label-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+  
 </style>
 </head>
 <body>
@@ -989,6 +1157,34 @@
     </div>
   </div>
   <div class="entry-footer">Products are copyable. People are not.™</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     CAPTURE SCREEN
+══════════════════════════════════════ -->
+<div id="screen-capture" class="screen">
+  <div class="login-mark">Robinson Creative Group</div>
+  <h2 class="login-title">Before We Begin</h2>
+  <p class="capture-sub">Your discovery results will be sent to this address.</p>
+  <div class="capture-form">
+    <input
+      type="text"
+      class="login-input"
+      id="capture-name"
+      placeholder="First Name"
+      autocomplete="given-name"
+    />
+    <input
+      type="email"
+      class="login-input"
+      id="capture-email"
+      placeholder="Email Address"
+      autocomplete="email"
+      inputmode="email"
+    />
+    <button class="btn-login" onclick="submitCapture()">Begin Your Discovery</button>
+    <div class="capture-error" id="capture-error"></div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════
@@ -1038,6 +1234,7 @@
   <div class="results-container">
     <div class="results-mark">Robinson Creative Group</div>
     <h1 class="results-headline">Your S.O.U.L. Code<br>Discovery Is <em>Complete</em></h1>
+    <p class="results-client-name" id="results-client-name"></p>
     <div class="results-divider"></div>
     <p class="results-intro">
       Your discovery session has been received. Travis Robinson will review your S.O.U.L. Code profile and reach out to schedule your Brand Growth Blueprint™ session.
@@ -1081,39 +1278,49 @@
      ADMIN PANEL SCREEN
 ══════════════════════════════════════ -->
 <div id="screen-admin" class="screen">
-  <div class="admin-container">
-    <div class="admin-header">
-      <div>
-        <div class="admin-title">Session Dashboard</div>
-        <div class="admin-subtitle">Robinson Creative Group · Admin</div>
+
+    <!-- VIEW A: Session List -->
+    <div id="admin-list-view" class="admin-container">
+      <div class="admin-header">
+        <div>
+          <div class="admin-title">Session Dashboard</div>
+          <div class="admin-subtitle">Robinson Creative Group · Admin</div>
+        </div>
+        <button onclick="showScreen('screen-entry')" style="background:none;border:none;color:var(--muted);font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;font-family:var(--font-body);">← Exit</button>
       </div>
-      <button onclick="showScreen('screen-entry')" style="background:none;border:none;color:var(--muted);font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;font-family:var(--font-body);">← Exit</button>
+
+      <div class="admin-stats" id="admin-stats">
+        <div class="stat-card">
+          <div class="stat-label">Total Sessions</div>
+          <div class="stat-value" id="stat-total">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Founders</div>
+          <div class="stat-value" id="stat-founders">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Artists</div>
+          <div class="stat-value" id="stat-artists">0</div>
+        </div>
+      </div>
+
+      <div id="sessions-list"></div>
+
+      <div id="no-sessions" class="hidden" style="text-align:center;padding:3rem;color:var(--muted);font-size:0.8rem;letter-spacing:0.1em;">
+        No sessions recorded yet.
+      </div>
     </div>
 
-    <div class="admin-stats" id="admin-stats">
-      <div class="stat-card">
-        <div class="stat-label">Total Sessions</div>
-        <div class="stat-value" id="stat-total">0</div>
+    <!-- VIEW B: Session Detail -->
+    <div id="admin-detail-view" class="admin-container" style="display:none">
+      <div class="admin-header">
+        <button class="btn-back" onclick="showSessionList()">← Back to Sessions</button>
+        <button onclick="showScreen('screen-entry')" style="background:none;border:none;color:var(--muted);font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;font-family:var(--font-body);">← Exit</button>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Founders</div>
-        <div class="stat-value" id="stat-founders">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Artists</div>
-        <div class="stat-value" id="stat-artists">0</div>
-      </div>
+      <div id="session-detail-content"></div>
     </div>
 
-    <div id="sessions-list">
-      <!-- Session cards render here -->
-    </div>
-
-    <div id="no-sessions" class="hidden" style="text-align:center;padding:3rem;color:var(--muted);font-size:0.8rem;letter-spacing:0.1em;">
-      No sessions recorded yet.
-    </div>
   </div>
-</div>
 
 <!-- Admin access button (hidden on entry, shown on session screens) -->
 <button class="admin-nav-btn hidden" id="admin-nav-btn" onclick="showScreen('screen-admin-login')">Admin</button>
@@ -1127,6 +1334,12 @@ const CONFIG = {
   adminPassword: 'rcg2026',
   calendlyUrl: 'https://calendly.com/travisrobinsonlive/30min'
 };
+
+// EmailJS — replace these with your actual values from emailjs.com
+// Set EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID to your real keys
+const EMAILJS_PUBLIC_KEY = 'YOUR_EMAILJS_PUBLIC_KEY';
+const EMAILJS_SERVICE_ID = 'YOUR_EMAILJS_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID = 'YOUR_EMAILJS_TEMPLATE_ID';
 
 async function callApi(payload) {
   const res = await fetch(CONFIG.apiBase, {
@@ -1147,6 +1360,8 @@ async function callApi(payload) {
 let state = {
   currentScreen: 'screen-entry',
   clientType: null,
+  clientName: null,
+  clientEmail: null,
   threadId: null,
   messages: [],
   isListening: false,
@@ -1180,19 +1395,49 @@ function showScreen(screenId) {
 // ══════════════════════════════════════
 // SESSION START
 // ══════════════════════════════════════
-async function startSession(type) {
+function startSession(type) {
   state.clientType = type;
   state.messages = [];
   state.sessionData = { type, startTime: new Date().toISOString(), transcript: [] };
+  document.getElementById('capture-name').value = '';
+  document.getElementById('capture-email').value = '';
+  document.getElementById('capture-error').textContent = '';
+  showScreen('screen-capture');
+}
+
+async function submitCapture() {
+  const name = document.getElementById('capture-name').value.trim();
+  const email = document.getElementById('capture-email').value.trim();
+  const err = document.getElementById('capture-error');
+
+  if (!name) { err.textContent = 'Please enter your first name.'; return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    err.textContent = 'Please enter a valid email address.';
+    return;
+  }
+
+  state.clientName = name;
+  state.clientEmail = email;
+  state.sessionData.clientName = name;
+  state.sessionData.clientEmail = email;
 
   document.getElementById('session-type-badge').textContent =
-    type === 'founder' ? 'Founder Session' : 'Artist Session';
+    state.clientType === 'founder' ? 'Founder Session' : 'Artist Session';
 
   showScreen('screen-session');
   document.getElementById('messages-container').innerHTML = '';
 
   await createThread();
-  await sendToAssistant("I'm ready to begin.");
+
+  const onboardingText = 'Welcome, ' + name + ". I'm your S.O.U.L. Code Discovery Guide. Over the next few minutes I'll ask you a series of questions about your story, your journey, and what drives you. There are no right or wrong answers — just speak naturally and honestly. Each time I ask a question, tap the mic button and speak your answer. When you pause, I'll know you're done. When we've completed your discovery, tap the Complete Session button and your results will appear — and be sent to your email.";
+
+  addMessage('assistant', onboardingText);
+
+  // Speak directly — inside a user gesture (button tap) so mobile audio is allowed
+  speakText(onboardingText, () => {
+    const openingMsg = "I'm ready to begin. My name is " + name + " and my email is " + email + ".";
+    sendToAssistant(openingMsg);
+  });
 }
 
 // ══════════════════════════════════════
@@ -1468,22 +1713,22 @@ async function endSession() {
   stopListening();
   if (state.synthesis) state.synthesis.cancel();
 
-  // Build session record
   const sessionRecord = {
     id: Date.now().toString(),
     clientType: state.clientType,
+    clientName: state.clientName || '',
+    clientEmail: state.clientEmail || '',
     date: new Date().toISOString(),
+    soulScore: '',
+    archetypeSignal: '',
+    strategistNotes: '',
     transcript: state.sessionData.transcript,
     reviewed: false
   };
 
-  // Save to localStorage (Firebase integration point)
   saveSession(sessionRecord);
-
-  // Fire Make webhook for iPhone notification
   fireWebhook(sessionRecord);
-
-  // Show results
+  sendEmailJS(sessionRecord);
   showResultsScreen(sessionRecord);
 }
 
@@ -1495,25 +1740,52 @@ function saveSession(record) {
 
 async function fireWebhook(record) {
   try {
-    await callApi({ action: 'notify', threadId: record.id, clientType: record.clientType });
+    await callApi({
+      action: 'notify',
+      threadId: record.id,
+      clientType: record.clientType,
+      clientName: record.clientName,
+      clientEmail: record.clientEmail
+    });
   } catch (err) {
     console.error('Webhook failed:', err);
   }
 }
 
-function showResultsScreen(record) {
-  const highlights = document.getElementById('results-highlights');
-  const typeLabel = record.clientType === 'founder' ? 'Founder' : 'Artist';
-  const msgCount = record.transcript.filter(m => m.role === 'user').length;
+function sendEmailJS(record) {
+  try {
+    if (EMAILJS_PUBLIC_KEY === 'YOUR_EMAILJS_PUBLIC_KEY') return; // not configured yet
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+    const typeLabel = record.clientType === 'founder' ? 'Founder' : 'Artist';
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: record.clientEmail,
+      to_name: record.clientName,
+      session_type: typeLabel + ' Identity Discovery',
+      session_date: new Date(record.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      calendly_url: CONFIG.calendlyUrl
+    });
+  } catch (err) {
+    console.error('EmailJS failed:', err);
+  }
+}
 
+function showResultsScreen(record) {
+  const typeLabel = record.clientType === 'founder' ? 'Founder' : 'Artist';
+  const msgCount = record.transcript ? record.transcript.filter(m => m.role === 'user').length : 0;
+  const dateStr = new Date(record.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const name = record.clientName || '';
+
+  document.getElementById('results-client-name').textContent = name ? 'Thank you, ' + name + '.' : '';
+
+  const highlights = document.getElementById('results-highlights');
   highlights.innerHTML = `
     <div class="highlight-item">
       <div class="highlight-label">Session Type</div>
       <div class="highlight-value">${typeLabel} Identity Discovery</div>
     </div>
     <div class="highlight-item">
-      <div class="highlight-label">Discovery Depth</div>
-      <div class="highlight-value">${msgCount} questions explored</div>
+      <div class="highlight-label">Completed</div>
+      <div class="highlight-value">${dateStr}</div>
     </div>
     <div class="highlight-item">
       <div class="highlight-label">Status</div>
@@ -1560,89 +1832,116 @@ function loadAdminPanel() {
   }
 
   noSessions.classList.add('hidden');
-  list.innerHTML = sessions.map((s, i) => buildSessionCard(s, i)).join('');
+  list.innerHTML = sessions.map(s => buildSessionRow(s)).join('');
 }
 
-function buildSessionCard(session, index) {
-  const date = new Date(session.date).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
+function buildSessionRow(session) {
+  const date = new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const typeLabel = session.clientType === 'founder' ? 'Founder' : 'Artist';
+  const badgeClass = session.clientType === 'founder' ? 'badge-founder' : 'badge-artist';
+  const displayName = session.clientName || ('Session ' + session.id.slice(-6));
+  const reviewedMark = session.reviewed ? ' ✓' : '';
+
+  return `<div class="session-row" onclick="showSessionDetail('${session.id}')">
+    <div class="session-row-left">
+      <div class="session-row-name">${displayName}${reviewedMark}</div>
+      <div class="session-row-meta">${date}</div>
+    </div>
+    <div class="session-row-right">
+      <span class="session-badge ${badgeClass}">${typeLabel}</span>
+      <button class="btn-review" onclick="event.stopPropagation(); showSessionDetail('${session.id}')">Review →</button>
+    </div>
+  </div>`;
+}
+
+function showSessionList() {
+  document.getElementById('admin-list-view').style.display = '';
+  document.getElementById('admin-detail-view').style.display = 'none';
+  loadAdminPanel();
+}
+
+function showSessionDetail(sessionId) {
+  const sessions = JSON.parse(localStorage.getItem('rcg_sessions') || '[]');
+  const session = sessions.find(s => s.id === sessionId);
+  if (!session) return;
+
+  document.getElementById('admin-list-view').style.display = 'none';
+  document.getElementById('admin-detail-view').style.display = '';
 
   const typeLabel = session.clientType === 'founder' ? 'Founder' : 'Artist';
   const badgeClass = session.clientType === 'founder' ? 'badge-founder' : 'badge-artist';
-  const msgCount = session.transcript ? session.transcript.filter(m => m.role === 'user').length : 0;
-
+  const date = new Date(session.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const displayName = session.clientName || ('Session ' + session.id.slice(-6));
   const transcriptText = session.transcript
-    ? session.transcript.map(m => `${m.role.toUpperCase()}: ${m.text}`).join('\n\n')
+    ? session.transcript.map(m => m.role.toUpperCase() + ': ' + m.text).join('\n\n')
     : 'No transcript available.';
+
+  const strategistInputBlock = [
+    '=== STRATEGIST INPUT BLOCK ===',
+    'Client: ' + displayName,
+    'Email: ' + (session.clientEmail || 'N/A'),
+    'Type: ' + typeLabel + ' Discovery Session',
+    'Date: ' + date,
+    'S.O.U.L. Score: ' + (session.soulScore || 'Pending'),
+    'Archetype Signal: ' + (session.archetypeSignal || 'Pending'),
+    '',
+    '--- TRANSCRIPT ---',
+    transcriptText
+  ].join('\n');
 
   const reviewedClass = session.reviewed ? 'reviewed' : '';
   const reviewedLabel = session.reviewed ? '✓ Reviewed' : 'Mark as Reviewed';
 
-  return `
-    <div class="session-card" id="card-${index}">
-      <div class="session-card-header" onclick="toggleCard(${index})">
-        <div class="session-client">
-          <div class="session-name">Session ${session.id.slice(-6)}</div>
-          <div class="session-meta">${date} · ${msgCount} exchanges</div>
-        </div>
-        <span class="session-badge ${badgeClass}">${typeLabel}</span>
+  document.getElementById('session-detail-content').innerHTML = `
+    <div class="detail-client-name">${displayName}</div>
+    <div class="detail-meta">
+      <span class="session-badge ${badgeClass}">${typeLabel}</span>
+      <span class="detail-date">${date}</span>
+    </div>
+
+    <div class="metrics-row" style="margin-top:1.5rem">
+      <div class="metric-block">
+        <div class="metric-label">S.O.U.L. Score</div>
+        <div class="metric-value">${session.soulScore || 'Pending'}</div>
       </div>
-      <div class="session-card-body" id="body-${index}">
-        <div class="data-block">
-          <div class="data-block-label">Session ID</div>
-          <div class="data-block-value">${session.id}</div>
-        </div>
-        <div class="data-block">
-          <div class="data-block-label">Client Type</div>
-          <div class="data-block-value">${typeLabel} Discovery Session</div>
-        </div>
-        <div class="data-block">
-          <div class="data-block-label">Completed</div>
-          <div class="data-block-value">${date}</div>
-        </div>
-
-        <div>
-          <div class="transcript-toggle" id="toggle-${index}" onclick="toggleTranscript(${index})">
-            <span class="transcript-toggle-label">Full Session Transcript</span>
-            <span class="transcript-toggle-arrow">▼</span>
-          </div>
-          <div class="transcript-content" id="transcript-${index}">${transcriptText}</div>
-        </div>
-
-        <div class="copy-row">
-          <button class="btn-copy" id="copy-transcript-${index}" onclick="copyText('transcript-${index}', 'copy-transcript-${index}')">
-            Copy Full Transcript
-          </button>
-          <button class="btn-copy" id="copy-id-${index}" onclick="copyToClipboard('${session.id}', 'copy-id-${index}')">
-            Copy Session ID
-          </button>
-        </div>
-
-        <button class="btn-mark-reviewed ${reviewedClass}" id="reviewed-${index}" onclick="markReviewed(${index}, '${session.id}')">
-          ${reviewedLabel}
-        </button>
+      <div class="metric-block">
+        <div class="metric-label">Archetype Signal</div>
+        <div class="metric-value">${session.archetypeSignal || 'Pending'}</div>
       </div>
     </div>
+
+    <div class="data-block" style="margin-top:1.5rem">
+      <div class="data-block-label">Strategist Notes</div>
+      <div class="data-block-value">${session.strategistNotes || 'No notes yet.'}</div>
+    </div>
+
+    <div style="margin-top:1.5rem">
+      <div class="strategist-input-header" onclick="toggleStrategistInput()">
+        <div class="strategist-input-label-row">
+          <span class="transcript-toggle-label">Strategist Input</span>
+          <span class="transcript-toggle-arrow" id="strategist-arrow">▼</span>
+        </div>
+        <button class="btn-copy" id="copy-strategist-btn" onclick="event.stopPropagation(); copyToClipboard(document.getElementById('strategist-input-content').textContent, 'copy-strategist-btn')">Copy</button>
+      </div>
+      <div class="transcript-content" id="strategist-input-content">${strategistInputBlock}</div>
+    </div>
+
+    <button class="btn-mark-reviewed ${reviewedClass}" id="detail-reviewed-btn" style="margin-top:1.5rem; width:100%"
+      onclick="markReviewedById('${session.id}')">
+      ${reviewedLabel}
+    </button>
   `;
 }
 
-function toggleCard(index) {
-  const body = document.getElementById(`body-${index}`);
-  body.classList.toggle('open');
-}
-
-function toggleTranscript(index) {
-  const content = document.getElementById(`transcript-${index}`);
-  const toggle = document.getElementById(`toggle-${index}`);
+function toggleStrategistInput() {
+  const content = document.getElementById('strategist-input-content');
+  const arrow = document.getElementById('strategist-arrow');
   content.classList.toggle('open');
-  toggle.classList.toggle('open');
-}
-
-function copyText(sourceId, btnId) {
-  const text = document.getElementById(sourceId).textContent;
-  copyToClipboard(text, btnId);
+  if (content.classList.contains('open')) {
+    arrow.style.transform = 'rotate(180deg)';
+  } else {
+    arrow.style.transform = '';
+  }
 }
 
 function copyToClipboard(text, btnId) {
@@ -1658,15 +1957,17 @@ function copyToClipboard(text, btnId) {
   });
 }
 
-function markReviewed(index, sessionId) {
+function markReviewedById(sessionId) {
   const sessions = JSON.parse(localStorage.getItem('rcg_sessions') || '[]');
   const session = sessions.find(s => s.id === sessionId);
   if (session) {
     session.reviewed = !session.reviewed;
     localStorage.setItem('rcg_sessions', JSON.stringify(sessions));
-    const btn = document.getElementById(`reviewed-${index}`);
+    const btn = document.getElementById('detail-reviewed-btn');
     btn.classList.toggle('reviewed');
     btn.textContent = session.reviewed ? '✓ Reviewed' : 'Mark as Reviewed';
+    // Refresh row in list if visible
+    loadAdminPanel();
   }
 }
 
