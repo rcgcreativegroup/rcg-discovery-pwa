@@ -1816,11 +1816,7 @@ async function getLatestMessage() {
     state.pendingSpeech = text;
     setVoiceStatus('tap-to-hear');
     stopListening();
-    setTimeout(function() {
-      addMessage('user', 'Generate Report Now');
-      state.sessionData.transcript.push({ role: 'user', text: 'Generate Report Now' });
-      sendToAssistant('Generate Report Now');
-    }, 1000);
+    setTimeout(function() { generateReport(); }, 1000);
     return;
   }
 
@@ -2006,6 +2002,53 @@ async function autoEndSession(parsed) {
   sendEmailJS(sessionRecord);
 
   setTimeout(() => showResultsScreen(sessionRecord), 1200);
+}
+
+// ── generateReport() — server-side run + validation + retry ─────────────────
+async function generateReport() {
+  addMessage('user', 'Generate Report Now');
+  state.sessionData.transcript.push({ role: 'user', text: 'Generate Report Now' });
+
+  showThinking();
+  try {
+    // Step 1: persist "Generate Report Now" to the OpenAI thread
+    await callApi({
+      action: 'add_message',
+      threadId: state.threadId,
+      message: 'Generate Report Now'
+    });
+
+    // Step 2: server creates run, polls, validates anchors, retries once if needed
+    const result = await callApi({
+      action: 'generate_report',
+      threadId: state.threadId,
+      clientType: state.clientType
+    });
+    hideThinking();
+
+    console.group("%c[RCG] generate_report result","color:#c9a84c;font-weight:bold");
+    console.log("ok:", result.ok, "| attempt:", result.attempt);
+    console.log("validation:", result.validation);
+    console.log("clientOutput (first 300):", (result.clientOutput || "").slice(0, 300));
+    console.groupEnd();
+
+    if (result.ok) {
+      // Render the validated client-facing report in the conversation UI
+      addReportMessage(result.clientOutput);
+      // Parse full response (includes internal block) for session record
+      var parsed = parseReport(result.rawFinalAssistantText || result.clientOutput);
+      await autoEndSession(parsed);
+    } else {
+      // Server validation failed after retries — do not finalize session
+      addMessage('assistant', 'Your report is being finalized. Please wait a moment.');
+      window._rcgDebugRawReport = result.rawFinalAssistantText || "";
+      console.warn("[RCG] generate_report ok:false — validation:", result.validation);
+    }
+  } catch (err) {
+    hideThinking();
+    console.error("[RCG] generateReport error:", err);
+    addMessage('assistant', 'There was an issue generating your report. Please try again or contact support.');
+  }
 }
 
 // ══════════════════════════════════════
