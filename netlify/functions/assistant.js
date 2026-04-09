@@ -118,6 +118,17 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
         return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
       }
 
+      // CANCEL RUN — called when poll loop times out
+      if (action === 'cancel_run') {
+        try {
+          const cancelled = await openaiCall(`/threads/${threadId}/runs/${runId}/cancel`, 'POST', {});
+          return { statusCode: 200, headers, body: JSON.stringify({ success: true, status: cancelled.status }) };
+        } catch (e) {
+          // Run may have already completed or expired — not a fatal error
+          return { statusCode: 200, headers, body: JSON.stringify({ success: false, note: e.message }) };
+        }
+      }
+
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 
     } catch (error) {
