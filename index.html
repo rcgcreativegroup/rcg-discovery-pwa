@@ -1666,7 +1666,7 @@ async function sendToAssistant(userMessage) {
 }
 
 async function pollRun(runId) {
-  const maxAttempts = 60;
+  const maxAttempts = 40;
   let attempts = 0;
 
   while (attempts < maxAttempts) {
@@ -1688,30 +1688,36 @@ async function pollRun(runId) {
 
     const status = result.status;
     console.log('Run status:', status, '| Attempt:', attempts);
-
-    if (!status) {
-      console.log('No status in response:', result);
-      continue;
-    }
+    if (!status) { continue; }
 
     if (status === 'completed') {
       await getLatestMessage();
       return;
     }
 
-    if (status === 'in_progress' || status === 'queued') {
-      continue;
-    }
+    if (status === 'in_progress' || status === 'queued') { continue; }
 
     if (status === 'failed' || status === 'cancelled' || status === 'expired') {
       hideThinking();
-      addMessage('assistant', 'Something went wrong. Please tap the mic and try again.');
+      addMessage('assistant', "I'm ready for your next response.");
       return;
     }
   }
 
+  // Run timed out after 40 attempts (~2 min) — cancel it so the thread is usable again
   hideThinking();
-  addMessage('assistant', 'Taking longer than expected. Please tap the mic and try again.');
+  try {
+    await callApi({
+      action: 'cancel_run',
+      threadId: state.threadId,
+      clientType: state.clientType,
+      runId
+    });
+    console.log('Stuck run cancelled:', runId);
+  } catch (e) {
+    console.warn('Run cancel attempt failed:', e);
+  }
+  addMessage('assistant', "I'm ready for your next response.");
 }
 
 async function getLatestMessage() {
