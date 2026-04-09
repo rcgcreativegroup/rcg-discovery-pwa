@@ -453,6 +453,22 @@
 
   .session-end-btn:hover { color: rgba(250,248,244,0.5); }
 
+  .begin-session-btn {
+    background: var(--gold);
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--black);
+    cursor: pointer;
+    padding: 1rem 2.5rem;
+    font-weight: 600;
+    transition: opacity 0.3s ease;
+    margin-bottom: 0.25rem;
+  }
+  .begin-session-btn:hover { opacity: 0.82; }
+
   /* ── RESULTS SCREEN ── */
   #screen-results {
     justify-content: flex-start;
@@ -1333,14 +1349,17 @@
       <div class="voice-bar" id="bar6"></div>
       <div class="voice-bar" id="bar7"></div>
     </div>
-    <div class="voice-status" id="voice-status">Tap the mic to begin speaking</div>
-    <button class="voice-btn" id="voice-btn" onclick="toggleVoice()">
+    <div class="voice-status" id="voice-status"></div>
+    <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" style="display:none;">
       <svg viewBox="0 0 24 24">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
         <line x1="12" y1="19" x2="12" y2="23"/>
         <line x1="8" y1="23" x2="16" y2="23"/>
       </svg>
+    </button>
+    <button class="begin-session-btn" id="begin-session-btn" onclick="beginSession()" style="display:none;">
+      Begin My Session
     </button>
     <button class="session-end-btn" id="session-end-btn" onclick="endSession()" style="display:none;">
       Complete Discovery Session
@@ -1559,11 +1578,21 @@ async function submitCapture() {
 
   addMessage('assistant', onboardingText);
 
-  // Speak directly — inside a user gesture (button tap) so mobile audio is allowed
-  speakText(onboardingText, () => {
-    const openingMsg = "I'm ready to begin. My name is " + name + " and my email is " + email + ".";
-    sendToAssistant(openingMsg);
-  });
+  // Speak the intro; user then clicks the 'Begin My Session' button
+  speakText(onboardingText, null);
+  document.getElementById('begin-session-btn').style.display = '';
+  document.getElementById('voice-status').textContent = '';
+}
+
+function beginSession() {
+  document.getElementById('begin-session-btn').style.display = 'none';
+  document.getElementById('voice-btn').style.display = '';
+  document.getElementById('session-end-btn').style.display = '';
+  var name = state.clientName || '';
+  var email = state.clientEmail || '';
+  var type = state.clientType === 'founder' ? 'Founder' : 'Artist';
+  var openingMsg = 'My name is ' + name + ' and my email is ' + email + '. I am here for my ' + type + ' S.O.U.L. Code Discovery session. I am ready to begin — please ask me the first discovery question now.';
+  sendToAssistant(openingMsg);
 }
 
 // ══════════════════════════════════════
