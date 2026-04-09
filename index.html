@@ -1711,29 +1711,32 @@ async function getLatestMessage() {
   });
   hideThinking();
 
-  if (result.sessionComplete) {
-    var endBtn = document.getElementById('session-end-btn');
-    if (endBtn) endBtn.classList.add('reveal');
-  }
   const text = result.reply || '';
   if (!text) return;
 
-  const INTERNAL_MARKER = '━━━ INTERNAL DATA BLOCK — BEGIN ━━━';
+  // Use server flag OR local fallback to detect the internal data block
+  var hasBlock = result.sessionComplete || text.indexOf('INTERNAL DATA BLOCK') !== -1;
 
-  if (text.includes(INTERNAL_MARKER)) {
-    // Report phase — suppress all voice
+  if (hasBlock) {
+    // Reveal the end-session button
+    var endBtn = document.getElementById('session-end-btn');
+    if (endBtn) endBtn.classList.add('reveal');
+
+    // Suppress voice for report phase
     state.reportPhaseActive = true;
     if (state.synthesis) state.synthesis.cancel();
     state.pendingSpeech = null;
     state.isSpeaking = false;
 
-    // Show only the Client Output in the chat (hide internal block)
-    const splitIdx = text.indexOf(INTERNAL_MARKER);
-    const clientDisplay = text.slice(0, splitIdx).trim();
+    // Strip from the line containing the internal block marker onward
+    var blockIdx = text.indexOf('INTERNAL DATA BLOCK');
+    var lineStart = text.lastIndexOf('\n', blockIdx);
+    var cutAt = lineStart !== -1 ? lineStart : blockIdx;
+    var clientDisplay = blockIdx !== -1 ? text.slice(0, cutAt).trim() : text.trim();
     addMessage('assistant', clientDisplay);
 
-    // Parse and auto-end session
-    const parsed = parseReport(text);
+    // Parse report and auto-end session
+    var parsed = parseReport(text);
     await autoEndSession(parsed);
     return;
   }
