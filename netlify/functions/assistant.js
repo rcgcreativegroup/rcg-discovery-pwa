@@ -1,10 +1,11 @@
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const {
+    generateFounderReportWithRetry,
+  } = require('./report-runner');
+
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL;
-
-  // Fallback to hardcoded IDs if env vars are not set in Netlify
   const FOUNDER_ASSISTANT_ID = process.env.FOUNDER_ASSISTANT_ID || 'asst_tA3jJ7ARTK4YwNNAM1m3efUJ';
-  const ARTIST_ASSISTANT_ID = process.env.ARTIST_ASSISTANT_ID || 'asst_QIdgHVMGh0YsMJj9sb6p5Lsp';
-
+  const ARTIST_ASSISTANT_ID  = process.env.ARTIST_ASSISTANT_ID  || 'asst_QIdgHVMGh0YsMJj9sb6p5Lsp';
   const OPENAI_BASE = 'https://api.openai.com/v1';
 
   function sleep(ms) {
@@ -23,12 +24,43 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
     if (body) options.body = JSON.stringify(body);
     const res = await fetch(`${OPENAI_BASE}${path}`, options);
     const json = await res.json();
-    if (!res.ok) {
-      const errMsg = json?.error?.message || `OpenAI error ${res.status}`;
-      throw new Error(errMsg);
-    }
+    if (!res.ok) throw new Error(json?.error?.message || `OpenAI error ${res.status}`);
     return json;
   }
+
+  // ── Helpers wired into generateFounderReportWithRetry ─────────────────────────
+
+  async function _createRun({ threadId, assistantId }) {
+    const run = await openaiCall(`/threads/${threadId}/runs`, 'POST', { assistant_id: assistantId });
+    return { runId: run.id };
+  }
+
+  // Server-side poll — max 22 s to stay within the 26 s Netlify timeout
+  async function _waitForRunCompletion({ threadId, runId }) {
+    const deadline = Date.now() + 22000;
+    while (Date.now() < deadline) {
+      const run = await openaiCall(`/threads/${threadId}/runs/${runId}`);
+      if (run.status === 'completed') return run;
+      if (['failed', 'cancelled', 'expired'].includes(run.status)) {
+        throw new Error(`Run ended with status: ${run.status}`);
+      }
+      await sleep(2000);
+    }
+    throw new Error('Run timed out after 22 s');
+  }
+
+  // Latest assistant message — newest assistant turn only (role-based dedup)
+  async function _getFinalAssistantMessage({ threadId }) {
+    const messages = await openaiCall(`/threads/${threadId}/messages?limit=10&order=desc`);
+    const msg = messages.data?.find(m => m.role === 'assistant');
+    return msg?.content?.[0]?.text?.value || '';
+  }
+
+  async function _addUserMessageToThread({ threadId, content }) {
+    await openaiCall(`/threads/${threadId}/messages`, 'POST', { role: 'user', content });
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────────
 
   exports.handler = async (event) => {
     const headers = {
@@ -38,64 +70,42 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
       'Content-Type': 'application/json'
     };
 
-    if (event.httpMethod === 'OPTIONS') {
-      return { statusCode: 200, headers, body: '' };
-    }
-
-    if (event.httpMethod !== 'POST') {
-      return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
-    }
+    if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
+    if (event.httpMethod !== 'POST')    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
 
     if (!OPENAI_API_KEY) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'OPENAI_API_KEY is not set in Netlify environment variables.' })
-      };
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'OPENAI_API_KEY is not set.' }) };
     }
 
     try {
       const { action, threadId, clientType, message, runId } = JSON.parse(event.body);
       const assistantId = clientType === 'founder' ? FOUNDER_ASSISTANT_ID : ARTIST_ASSISTANT_ID;
 
-      // GET CONFIG (exposes server env vars to client)
       if (action === 'get_config') {
         return { statusCode: 200, headers, body: JSON.stringify({ calendlyUrl: process.env.CALENDLY || '' }) };
       }
 
-      // CREATE THREAD
       if (action === 'create_thread') {
         const thread = await openaiCall('/threads', 'POST', {});
         return { statusCode: 200, headers, body: JSON.stringify({ id: thread.id }) };
       }
 
-      // ADD MESSAGE ONLY
       if (action === 'add_message') {
-        const msg = await openaiCall(`/threads/${threadId}/messages`, 'POST', {
-          role: 'user',
-          content: message
-        });
+        const msg = await openaiCall(`/threads/${threadId}/messages`, 'POST', { role: 'user', content: message });
         return { statusCode: 200, headers, body: JSON.stringify({ success: true, id: msg.id }) };
       }
 
-      // START RUN ONLY
       if (action === 'create_run') {
-        const run = await openaiCall(`/threads/${threadId}/runs`, 'POST', {
-          assistant_id: assistantId
-        });
+        const run = await openaiCall(`/threads/${threadId}/runs`, 'POST', { assistant_id: assistantId });
         return { statusCode: 200, headers, body: JSON.stringify({ runId: run.id, status: run.status }) };
       }
 
-      // POLL RUN STATUS ONLY — lightweight, fast
       if (action === 'get_run') {
         const run = await openaiCall(`/threads/${threadId}/runs/${runId}`);
         return { statusCode: 200, headers, body: JSON.stringify({ status: run.status, runId: run.id }) };
       }
 
-      // GET LATEST MESSAGE
       if (action === 'get_messages') {
-        // Fetch last 10 messages and find the most recent assistant reply
-        // Using limit=1 would return the user's own message if a run is still active
         const messages = await openaiCall(`/threads/${threadId}/messages?limit=10&order=desc`);
         const assistantMsg = messages.data?.find(m => m.role === 'assistant');
         const reply = assistantMsg?.content?.[0]?.text?.value || '';
@@ -104,7 +114,20 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
         return { statusCode: 200, headers, body: JSON.stringify({ reply, sessionComplete }) };
       }
 
-      // NOTIFY MAKE — iPhone ping
+      // GENERATE REPORT — validates client output, retries once if anchors are missing
+      if (action === 'generate_report') {
+        const result = await generateFounderReportWithRetry({
+          threadId,
+          assistantId,
+          createRun:                _createRun,
+          waitForRunCompletion:     _waitForRunCompletion,
+          getFinalAssistantMessage: _getFinalAssistantMessage,
+          addUserMessageToThread:   _addUserMessageToThread,
+          maxAttempts: 2
+        });
+        return { statusCode: 200, headers, body: JSON.stringify(result) };
+      }
+
       if (action === 'notify') {
         if (MAKE_WEBHOOK_URL) {
           await fetch(MAKE_WEBHOOK_URL, {
@@ -121,13 +144,11 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
         return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
       }
 
-      // CANCEL RUN — called when poll loop times out
       if (action === 'cancel_run') {
         try {
           const cancelled = await openaiCall(`/threads/${threadId}/runs/${runId}/cancel`, 'POST', {});
           return { statusCode: 200, headers, body: JSON.stringify({ success: true, status: cancelled.status }) };
         } catch (e) {
-          // Run may have already completed or expired — not a fatal error
           return { statusCode: 200, headers, body: JSON.stringify({ success: false, note: e.message }) };
         }
       }
@@ -135,11 +156,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 
     } catch (error) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: error.message })
-      };
+      return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
     }
   };
   
