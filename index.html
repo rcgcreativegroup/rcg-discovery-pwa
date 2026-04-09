@@ -1704,8 +1704,18 @@ async function pollRun(runId) {
     }
   }
 
-  // Run timed out after 40 attempts (~2 min) — cancel it so the thread is usable again
+  // Run timed out after 40 attempts (~2 min)
+  // Try fetching the message first — run may have completed even if status was stuck
   hideThinking();
+  try {
+    await getLatestMessage();
+    console.log('Message fetched after timeout — run may have completed silently');
+    return;
+  } catch (e) {
+    console.warn('Message fetch after timeout failed:', e);
+  }
+
+  // Message fetch also failed — actively cancel the run so thread is usable again
   try {
     await callApi({
       action: 'cancel_run',
@@ -1990,6 +2000,28 @@ async function endSession() {
   stopListening();
   if (state.synthesis) state.synthesis.cancel();
 
+  // Try to fetch the latest message — the session-complete report may already be there
+  if (state.threadId) {
+    try {
+      const result = await callApi({
+        action: 'get_messages',
+        threadId: state.threadId,
+        clientType: state.clientType
+      });
+      const text = result.reply || '';
+      var hasBlock = result.sessionComplete || text.indexOf('INTERNAL DATA BLOCK') !== -1;
+      if (hasBlock) {
+        // Full report is present — parse and auto-end properly
+        var parsed = parseReport(text);
+        await autoEndSession(parsed);
+        return;
+      }
+    } catch (e) {
+      console.warn('endSession message fetch failed:', e);
+    }
+  }
+
+  // No report available — save session with transcript only
   const sessionRecord = {
     id: Date.now().toString(),
     clientType: state.clientType,
@@ -1999,10 +2031,12 @@ async function endSession() {
     soulScore: '',
     archetypeSignal: '',
     strategistNotes: '',
+    strategistInput: '',
     transcript: state.sessionData.transcript,
+    clientEmailContent: '',
+    rawReport: '',
     reviewed: false
   };
-
   saveSession(sessionRecord);
   fireWebhook(sessionRecord);
   sendEmailJS(sessionRecord);
