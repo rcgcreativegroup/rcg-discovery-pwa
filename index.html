@@ -1760,9 +1760,10 @@ async function getLatestMessage() {
   // status === "completed"), so it is safe to parse the entire text now.
   // Detection is normalized: curly quotes, extra spaces, case differences are
   // all tolerated. The core meaning "i've captured everything i need" is anchor.
-  var HANDOFF_CORE = "i've captured everything i need";
+  var HANDOFF_CORE_A = "i've captured everything i need";
+  var HANDOFF_CORE_B = 'generate report now';
   var normText = normalizeForMatch(text);
-  var hasHandoff = normText.includes(HANDOFF_CORE);
+  var hasHandoff = normText.includes(HANDOFF_CORE_A) && normText.includes(HANDOFF_CORE_B);
 
   // One-time lock — prevents double-send if somehow called twice
   if (hasHandoff && !state.reportPhaseActive && !state.reportTriggered) {
