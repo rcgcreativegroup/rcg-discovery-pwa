@@ -1743,34 +1743,57 @@ async function getLatestMessage() {
   const text = result.reply || '';
   if (!text) return;
 
-  // Use server flag OR local fallback to detect the internal data block
+  // ── HANDOFF PHRASE DETECTION ──────────────────────────────────────────────
+  // When the assistant says the handoff phrase, the PWA auto-sends "Generate Report Now"
+  // to trigger report generation (per v8.2 instruction protocol).
+  var HANDOFF_PHRASE = "I've captured everything I need";
+  var hasHandoff = text.includes(HANDOFF_PHRASE) || text.includes('Generate Report Now');
+
+  if (hasHandoff && !state.reportPhaseActive) {
+    // Show the assistant message so the user can hear the handoff phrase
+    addMessage('assistant', text);
+    state.sessionData.transcript.push({ role: 'assistant', text });
+    // Speak the phrase if TTS is active
+    state.pendingSpeech = text;
+    setVoiceStatus('tap-to-hear');
+
+    // Stop voice capture — voice session is done
+    stopListening();
+    state.reportPhaseActive = true;
+
+    // Auto-send "Generate Report Now" after the current run lock is released
+    setTimeout(function() {
+      addMessage('user', 'Generate Report Now');
+      state.sessionData.transcript.push({ role: 'user', text: 'Generate Report Now' });
+      sendToAssistant('Generate Report Now');
+    }, 1000);
+    return;
+  }
+
+  // ── INTERNAL DATA BLOCK — silent backend processing ───────────────────────
   var hasBlock = result.sessionComplete || text.indexOf('INTERNAL DATA BLOCK') !== -1;
 
   if (hasBlock) {
-    // Reveal the end-session button
-    var endBtn = document.getElementById('session-end-btn');
-    if (endBtn) endBtn.classList.add('reveal');
-
-    // Suppress voice for report phase
+    // Suppress further voice input
     state.reportPhaseActive = true;
     if (state.synthesis) state.synthesis.cancel();
     state.pendingSpeech = null;
     state.isSpeaking = false;
 
-    // Strip from the line containing the internal block marker onward
+    // Strip internal block from display — client only sees their output
     var blockIdx = text.indexOf('INTERNAL DATA BLOCK');
     var lineStart = text.lastIndexOf('\n', blockIdx);
     var cutAt = lineStart !== -1 ? lineStart : blockIdx;
     var clientDisplay = blockIdx !== -1 ? text.slice(0, cutAt).trim() : text.trim();
-    addMessage('assistant', clientDisplay);
+    if (clientDisplay) addMessage('assistant', clientDisplay);
 
-    // Parse report and auto-end session
+    // Parse report silently and end session — internal block goes to webhook/email only
     var parsed = parseReport(text);
     await autoEndSession(parsed);
     return;
   }
 
-  // Normal discovery message
+  // ── Normal discovery message ───────────────────────────────────────────────
   addMessage('assistant', text);
   if (!state.reportPhaseActive) {
     state.pendingSpeech = text;
@@ -2419,19 +2442,6 @@ function addMessage(role, text) {
 
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
-
-  // Auto-reveal the "Complete Discovery Session" button after 16 assistant turns
-  // This is a safety fallback — the session may complete before this, or the model
-  // may not auto-fire the completion trigger, so give the user a way out.
-  if (role === "assistant") {
-    var assistantCount = state.messages.filter(function(m) { return m.role === "assistant"; }).length;
-    if (assistantCount >= 16) {
-      var endBtn = document.getElementById("session-end-btn");
-      if (endBtn && !endBtn.classList.contains("reveal")) {
-        endBtn.classList.add("reveal");
-      }
-    }
-  }
 }
 
 function showThinking() {
