@@ -1520,6 +1520,7 @@ let state = {
   sessions: [],
   isProcessing: false,
   reportTriggered: false   // one-time lock: prevent double 'Generate Report Now'
+  activeRunId: null         // set by pollRun for debug logging
 };
 
 // ══════════════════════════════════════
@@ -1694,6 +1695,7 @@ async function pollRun(runId) {
     if (!status) { continue; }
 
     if (status === 'completed') {
+      state.activeRunId = runId; // preserve for debug logging
       await getLatestMessage();
       return;
     }
@@ -1711,6 +1713,7 @@ async function pollRun(runId) {
   // Try fetching the message first — run may have completed even if status was stuck
   hideThinking();
   try {
+    state.activeRunId = runId; // preserve for debug logging (timeout path)
     await getLatestMessage();
     console.log('Message fetched after timeout — run may have completed silently');
     return;
@@ -1755,31 +1758,31 @@ async function getLatestMessage() {
   const text = result.reply || '';
   if (!text) return;
 
-  // ── HANDOFF PHRASE DETECTION ─────────────────────────────────────────────
-  // This response is the full assistant message (pollRun only calls us after
-  // status === "completed"), so it is safe to parse the entire text now.
-  // Detection is normalized: curly quotes, extra spaces, case differences are
-  // all tolerated. The core meaning "i've captured everything i need" is anchor.
+  // ── CHECKPOINT 1: RAW FINAL ASSISTANT RESPONSE ───────────────────────────
+  console.group("%c[RCG DEBUG] CHECKPOINT 1 — RAW FINAL ASSISTANT RESPONSE", "color:#c9a84c;font-weight:bold");
+  console.log("runId:", state.activeRunId);
+  console.log("threadId:", state.threadId);
+  var normTextDbg = normalizeForMatch(text);
+  console.log("normText (first 300):", normTextDbg.slice(0, 300));
+  console.log("reportTriggered:", state.reportTriggered);
+  console.log("reportPhaseActive:", state.reportPhaseActive);
+  console.log("rawFinalAssistantText (full):", text);
+  console.groupEnd();
+
+  // ── HANDOFF PHRASE DETECTION ──────────────────────────────────────────────
   var HANDOFF_CORE_A = "i've captured everything i need";
   var HANDOFF_CORE_B = 'generate report now';
   var normText = normalizeForMatch(text);
   var hasHandoff = normText.includes(HANDOFF_CORE_A) && normText.includes(HANDOFF_CORE_B);
 
-  // One-time lock — prevents double-send if somehow called twice
   if (hasHandoff && !state.reportPhaseActive && !state.reportTriggered) {
     state.reportTriggered = true;
-
-    // Show the phrase so user hears it (TTS) and sees the transition
     addMessage('assistant', text);
     state.sessionData.transcript.push({ role: 'assistant', text });
     state.pendingSpeech = text;
     setVoiceStatus('tap-to-hear');
-
-    // Stop voice capture — voice session is complete
     stopListening();
     state.reportPhaseActive = true;
-
-    // Wait for current run lock to release, then auto-send the report trigger
     setTimeout(function() {
       addMessage('user', 'Generate Report Now');
       state.sessionData.transcript.push({ role: 'user', text: 'Generate Report Now' });
@@ -1788,27 +1791,104 @@ async function getLatestMessage() {
     return;
   }
 
-  // ── INTERNAL DATA BLOCK — full response received, safe to parse ──────────
-  // The block is only present after report generation, which happens AFTER the
-  // "Generate Report Now" trigger — so there is no risk of partial parsing.
+  // ── INTERNAL DATA BLOCK PATH — with full debug instrumentation ────────────
   var hasBlock = result.sessionComplete || text.indexOf('INTERNAL DATA BLOCK') !== -1;
 
   if (hasBlock) {
-    // Suppress further voice input
     state.reportPhaseActive = true;
     if (state.synthesis) state.synthesis.cancel();
     state.pendingSpeech = null;
     state.isSpeaking = false;
 
-    // Strip the internal block from the client-visible display.
-    // Walk back to the start of the line so the separator line is also removed.
+    // ── CHECKPOINT 2: INTERNAL BLOCK SPLIT ────────────────────────────────
     var blockIdx = text.indexOf('INTERNAL DATA BLOCK');
     var lineStart = text.lastIndexOf('\n', blockIdx);
     var cutAt = lineStart !== -1 ? lineStart : blockIdx;
-    var clientDisplay = blockIdx !== -1 ? text.slice(0, cutAt).trim() : text.trim();
-    if (clientDisplay) addMessage('assistant', clientDisplay);
+    var clientOutputRaw = blockIdx !== -1 ? text.slice(0, cutAt) : text;
+    var internalOutputRaw = blockIdx !== -1 ? text.slice(blockIdx) : '';
+    console.group("%c[RCG DEBUG] CHECKPOINT 2 — INTERNAL BLOCK SPLIT", "color:#c9a84c;font-weight:bold");
+    console.log("splitFound:", blockIdx !== -1);
+    console.log("blockIdx:", blockIdx);
+    console.log("cutAt:", cutAt);
+    console.log("clientOutputBeforeTrim (first 300):", clientOutputRaw.slice(0, 300));
+    console.log("internalOutputBeforeTrim (first 300):", internalOutputRaw.slice(0, 300));
+    console.groupEnd();
 
-    // Route internal block silently to backend (webhook / email)
+    var clientDisplay = clientOutputRaw.trim();
+
+    // ── CHECKPOINT 3: CLOSE MESSAGE DETECTION ─────────────────────────────
+    var CLOSE_MSG = "Your session is complete. Your results have been sent to your email.";
+    var closeMsgIdx = clientDisplay.indexOf(CLOSE_MSG);
+    var closeInFull  = text.indexOf(CLOSE_MSG);
+    var visibleBeforeClose = closeMsgIdx > 0 ? clientDisplay.slice(0, closeMsgIdx).trim() : clientDisplay;
+    console.group("%c[RCG DEBUG] CHECKPOINT 3 — CLOSE MESSAGE DETECTION", "color:#c9a84c;font-weight:bold");
+    console.log("closeMessageFound:", closeInFull !== -1);
+    console.log("closeMessageIndex in clientDisplay:", closeMsgIdx);
+    console.log("textBeforeCloseMsg (first 300):", visibleBeforeClose.slice(0, 300));
+    console.groupEnd();
+
+    // ── CHECKPOINT 4: CLIENT OUTPUT VALIDATION ────────────────────────────
+    var clientOutputLength = clientDisplay.length;
+    var clientOutputPreview = clientDisplay.slice(0, 500);
+    var hasSoulScoreHeader = /s\.?o\.?u\.?l/i.test(clientDisplay);
+    var hasEmailSection = /email|results have been sent|your identity/i.test(clientDisplay);
+    console.group("%c[RCG DEBUG] CHECKPOINT 4 — CLIENT OUTPUT VALIDATION", "color:#c9a84c;font-weight:bold");
+    console.log("clientOutputLength:", clientOutputLength);
+    console.log("clientOutputPreview:", clientOutputPreview);
+    console.log("clientOutputHasSoulScoreHeader:", hasSoulScoreHeader);
+    console.log("clientOutputHasSessionEmailSection:", hasEmailSection);
+    console.groupEnd();
+
+    // ── CHECKPOINT 5 & 8: RENDER GUARD + FAILURE HANDLING ─────────────────
+    // Detect failure conditions:
+    // A. close message present but clientOutput is essentially empty (< 100 chars)
+    // B. split succeeded but clientOutput has no report content at all
+    var CLOSE_ONLY_THRESHOLD = 100;
+    var onlyCloseMsg = (clientOutputLength < CLOSE_ONLY_THRESHOLD) ||
+                       (visibleBeforeClose.length < CLOSE_ONLY_THRESHOLD && closeInFull !== -1);
+
+    if (onlyCloseMsg) {
+      console.group("%c[RCG DEBUG] REPORT_RENDER_FAILURE", "color:red;font-weight:bold");
+      console.log("FAILURE REASON: client output missing or too short");
+      console.log("clientOutputLength:", clientOutputLength);
+      console.log("closeMessageFound:", closeInFull !== -1);
+      console.log("rawFinalAssistantText (preserved):", text);
+      console.groupEnd();
+
+      // Preserve raw response for debugging — do not silently finalize
+      window._rcgDebugRawReport = text;
+
+      // Show recoverable error state — do not transition to results screen
+      addMessage('assistant',
+        'Your report did not render correctly. The session data has been preserved. ' +
+        'Please refresh the page or contact support. Your responses were recorded.'
+      );
+      return;
+    }
+
+    // ── CHECKPOINT 6: INTERNAL STRIP SAFETY ─────────────────────────────
+    // Verify the strip is clean: text before marker is preserved, not collapsed
+    console.group("%c[RCG DEBUG] CHECKPOINT 6 — INTERNAL STRIP SAFETY", "color:#c9a84c;font-weight:bold");
+    console.log("textBeforeMarkerLength:", clientDisplay.length);
+    console.log("markerAtStart:", blockIdx === 0);
+    console.log("clientDisplayNotEmpty:", clientDisplay.length > 0);
+    console.log("stripAppearsCorrect:", blockIdx > 0 && clientDisplay.length > 0);
+    console.groupEnd();
+
+    // ── CHECKPOINT 7: FINAL UI STATE LOG ──────────────────────────────────
+    var isCloseOnly = clientDisplay === CLOSE_MSG || clientDisplay.replace(CLOSE_MSG, '').trim().length < 50;
+    var vBtn = document.getElementById('voice-btn');
+    console.group("%c[RCG DEBUG] CHECKPOINT 7 — FINAL UI STATE", "color:#c9a84c;font-weight:bold");
+    console.log("finalVisibleTextLength:", clientDisplay.length);
+    console.log("finalVisibleTextPreview:", clientDisplay.slice(0, 500));
+    console.log("renderedCloseMessageOnly:", isCloseOnly);
+    console.log("sessionMarkedComplete:", state.reportTriggered);
+    console.log("reportPhaseActive:", state.reportPhaseActive);
+    console.log("micDisabled:", vBtn ? vBtn.disabled : "n/a");
+    console.groupEnd();
+
+    // Render client output and route internal block silently
+    if (clientDisplay) addMessage('assistant', clientDisplay);
     var parsed = parseReport(text);
     await autoEndSession(parsed);
     return;
