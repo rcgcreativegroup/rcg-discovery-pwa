@@ -2644,6 +2644,9 @@ const realtimeVoiceAdapter = {
   sessionInfo: null,
   connectPromise: null,
   pendingSpeakComplete: null,
+  pendingSpeakText: '',
+  dataChannelOpenPromise: null,
+  isRealtimeReady: false,
   preload: function() {
     console.log('[RCG Realtime] adapter ready in realtime mode');
   },
@@ -2762,7 +2765,9 @@ const realtimeVoiceAdapter = {
         const dataChannel = pc.createDataChannel('oai-events');
         self.dataChannel = dataChannel;
         dataChannel.onopen = function() {
+          self.isRealtimeReady = true;
           self.logDataChannelEvent('data channel open');
+          self.flushQueuedSpeak();
         };
         dataChannel.onmessage = function(event) {
           var parsed = null;
@@ -2778,6 +2783,7 @@ const realtimeVoiceAdapter = {
           console.error('[RCG Realtime] data channel error', event);
         };
         dataChannel.onclose = function() {
+          self.isRealtimeReady = false;
           self.logDataChannelEvent('data channel closed');
         };
 
@@ -2820,6 +2826,7 @@ const realtimeVoiceAdapter = {
   },
   disconnect: function() {
     this.finishPendingSpeak();
+    this.pendingSpeakText = '';
     if (this.dataChannel) {
       try { this.dataChannel.close(); } catch (e) {}
     }
@@ -2841,6 +2848,7 @@ const realtimeVoiceAdapter = {
 
     this.sessionInfo = null;
     this.connectionState = 'idle';
+    this.isRealtimeReady = false;
   },
   finishPendingSpeak: function() {
     var onComplete = this.pendingSpeakComplete;
@@ -2872,6 +2880,117 @@ const realtimeVoiceAdapter = {
       console.error('[RCG Realtime] server event error', event.error || event);
       return;
     }
+  },
+  waitForDataChannelOpen: function(timeoutMs) {
+    var self = this;
+    var waitMs = typeof timeoutMs === 'number' ? timeoutMs : 4000;
+
+    if (this.dataChannel && this.dataChannel.readyState === 'open') {
+      this.isRealtimeReady = true;
+      return Promise.resolve(true);
+    }
+
+    if (!this.dataChannel) {
+      return Promise.resolve(false);
+    }
+
+    if (this.dataChannelOpenPromise) {
+      return this.dataChannelOpenPromise;
+    }
+
+    this.dataChannelOpenPromise = new Promise(function(resolve) {
+      var settled = false;
+      var timer = window.setTimeout(function() {
+        if (settled) return;
+        settled = true;
+        console.warn('[RCG Realtime] data channel did not open before timeout', { timeoutMs: waitMs });
+        self.dataChannelOpenPromise = null;
+        resolve(false);
+      }, waitMs);
+
+      function finish(result) {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        self.dataChannelOpenPromise = null;
+        resolve(result);
+      }
+
+      var channel = self.dataChannel;
+      if (!channel) {
+        finish(false);
+        return;
+      }
+
+      if (channel.readyState === 'open') {
+        self.isRealtimeReady = true;
+        finish(true);
+        return;
+      }
+
+      var prevOpen = channel.onopen;
+      var prevClose = channel.onclose;
+      var prevError = channel.onerror;
+
+      channel.onopen = function(event) {
+        if (typeof prevOpen === 'function') prevOpen.call(channel, event);
+        self.isRealtimeReady = true;
+        finish(true);
+      };
+
+      channel.onclose = function(event) {
+        if (typeof prevClose === 'function') prevClose.call(channel, event);
+        self.isRealtimeReady = false;
+        finish(false);
+      };
+
+      channel.onerror = function(event) {
+        if (typeof prevError === 'function') prevError.call(channel, event);
+        self.isRealtimeReady = false;
+        finish(false);
+      };
+    });
+
+    return this.dataChannelOpenPromise;
+  },
+  queueSpeak: function(text, onComplete) {
+    this.pendingSpeakText = text;
+    this.pendingSpeakComplete = onComplete || null;
+    console.log('[RCG Realtime] queued speak request until realtime is ready');
+  },
+  flushQueuedSpeak: function() {
+    if (!this.pendingSpeakText || !this.isRealtimeReady || !this.dataChannel || this.dataChannel.readyState !== 'open') {
+      return;
+    }
+    var text = this.pendingSpeakText;
+    console.log('[RCG Realtime] flushing queued speak request');
+    this.pendingSpeakText = '';
+    this.sendSpeakEvents(text);
+  },
+  sendSpeakEvents: function(text) {
+    state.isSpeaking = true;
+    setVoiceStatus('speaking');
+    console.log('[RCG Realtime] speak requested', text);
+    this.sendEvent({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: 'Speak the following message to the user exactly as written, without adding commentary:\n\n' + text
+          }
+        ]
+      }
+    });
+    this.sendEvent({
+      type: 'response.create',
+      response: {
+        instructions: 'Read the most recent user-provided message aloud exactly as written. Use a warm, concise voice.',
+        output_modalities: ['audio']
+      }
+    });
   },
   setMicEnabled: function(enabled) {
     if (!this.localStream) return;
@@ -2936,31 +3055,20 @@ const realtimeVoiceAdapter = {
     try {
       console.log('[RCG Realtime] speak requested in realtime mode');
       var connected = await this.connect();
-      if (connected && state.voiceMode === 'realtime' && this.dataChannel && this.dataChannel.readyState === 'open') {
-        state.isSpeaking = true;
-        setVoiceStatus('speaking');
-        console.log('[RCG Realtime] speak requested', text);
+      if (connected && state.voiceMode === 'realtime' && !this.isRealtimeReady) {
+        this.queueSpeak(text, onComplete);
+        var channelReady = await this.waitForDataChannelOpen();
+        if (channelReady && this.isRealtimeReady) {
+          return;
+        }
+      }
+      var channelReady = false;
+      if (connected && state.voiceMode === 'realtime') {
+        channelReady = this.isRealtimeReady || await this.waitForDataChannelOpen();
+      }
+      if (connected && state.voiceMode === 'realtime' && channelReady && this.dataChannel && this.dataChannel.readyState === 'open') {
         this.pendingSpeakComplete = onComplete || null;
-        this.sendEvent({
-          type: 'conversation.item.create',
-          item: {
-            type: 'message',
-            role: 'user',
-            content: [
-              {
-                type: 'input_text',
-                text: 'Speak the following message to the user exactly as written, without adding commentary:\n\n' + text
-              }
-            ]
-          }
-        });
-        this.sendEvent({
-          type: 'response.create',
-          response: {
-            instructions: 'Read the most recent user-provided message aloud exactly as written. Use a warm, concise voice.',
-            output_modalities: ['audio']
-          }
-        });
+        this.sendSpeakEvents(text);
         return;
       }
     } catch (error) {
@@ -2969,7 +3077,7 @@ const realtimeVoiceAdapter = {
     }
 
     console.warn('[RCG Realtime] realtime speak unavailable; falling back to browser speech', {
-      reason: this.fallbackReason || 'data_channel_unavailable'
+      reason: this.fallbackReason || 'data_channel_not_open'
     });
     return browserVoiceAdapter.speak(text, onComplete);
   },
