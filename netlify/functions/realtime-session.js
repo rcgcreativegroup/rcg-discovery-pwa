@@ -17,7 +17,11 @@ exports.handler = async (event) => {
   }
 
   if (!OPENAI_API_KEY) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'OPENAI_API_KEY is not set.' }) };
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ ok: false, error: 'OPENAI_API_KEY is not set.' })
+    };
   }
 
   try {
@@ -53,13 +57,29 @@ exports.handler = async (event) => {
     });
 
     const data = await response.json();
+    console.log('[realtime-session] OpenAI client_secrets response:', JSON.stringify(data));
 
     if (!response.ok) {
+      console.error('[realtime-session] OpenAI client_secrets error:', JSON.stringify(data));
       return {
         statusCode: response.status,
         headers,
         body: JSON.stringify({
+          ok: false,
           error: data?.error?.message || 'Failed to create realtime session.'
+        })
+      };
+    }
+
+    const clientSecretValue = data?.value || data?.client_secret?.value || '';
+    if (!clientSecretValue) {
+      console.error('[realtime-session] Missing client secret in OpenAI response:', JSON.stringify(data));
+      return {
+        statusCode: 502,
+        headers,
+        body: JSON.stringify({
+          ok: false,
+          error: 'Realtime session did not include a client secret.'
         })
       };
     }
@@ -69,19 +89,26 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({
         ok: true,
-        clientType,
-        session: data,
-        client_secret: data.client_secret || null,
+        client_secret: {
+          value: clientSecretValue,
+          expires_at: data?.expires_at || null
+        },
         model: REALTIME_MODEL,
         voice: REALTIME_VOICE,
+        session: data?.session || null,
+        clientType,
         expires_after_seconds: REALTIME_TTL_SECONDS
       })
     };
   } catch (error) {
+    console.error('[realtime-session] Unexpected error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message || 'Failed to create realtime session.' })
+      body: JSON.stringify({
+        ok: false,
+        error: error.message || 'Failed to create realtime session.'
+      })
     };
   }
 };
