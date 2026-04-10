@@ -2945,11 +2945,11 @@ const realtimeVoiceAdapter = {
           type: 'conversation.item.create',
           item: {
             type: 'message',
-            role: 'assistant',
+            role: 'user',
             content: [
               {
-                type: 'text',
-                text: text
+                type: 'input_text',
+                text: 'Speak the following message to the user exactly as written, without adding commentary:\n\n' + text
               }
             ]
           }
@@ -2957,8 +2957,8 @@ const realtimeVoiceAdapter = {
         this.sendEvent({
           type: 'response.create',
           response: {
-            modalities: ['audio'],
-            instructions: 'Speak this message to the user in a warm, concise voice: ' + text
+            instructions: 'Read the most recent user-provided message aloud exactly as written. Use a warm, concise voice.',
+            output_modalities: ['audio']
           }
         });
         return;
