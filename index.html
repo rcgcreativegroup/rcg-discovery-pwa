@@ -1720,6 +1720,7 @@ let state = {
   clientType: null,
   clientName: null,
   clientEmail: null,
+  voiceMode: 'browser',
   threadId: null,
   messages: [],
   isListening: false,
@@ -1845,8 +1846,8 @@ function pauseOrResumeSession() {
   }
 
   state.isPaused = true;
-  if (state.recognition) stopListening('paused');
-  if (state.synthesis) state.synthesis.cancel();
+  stopListening('paused');
+  voiceAdapter.cancelSpeech();
   state.isSpeaking = false;
   updateSessionControls();
   setVoiceStatus('paused');
@@ -1922,6 +1923,7 @@ async function submitCapture() {
       'After each question finishes, listening will begin automatically.'
     );
   });
+  voiceAdapter.preload();
   updateSessionControls();
 }
 
@@ -2177,7 +2179,7 @@ async function getLatestMessage() {
 
   if (hasBlock) {
     state.reportPhaseActive = true;
-    if (state.synthesis) state.synthesis.cancel();
+    voiceAdapter.cancelSpeech();
     state.pendingSpeech = null;
     state.isSpeaking = false;
     updateSessionControls();
@@ -2389,7 +2391,7 @@ function parseReport(fullText) {
 // ══════════════════════════════════════
 async function autoEndSession(parsed) {
   stopListening('thinking');
-  if (state.synthesis) state.synthesis.cancel();
+  voiceAdapter.cancelSpeech();
   state.reportPhaseActive = true;
   updateSessionControls();
 
@@ -2487,147 +2489,199 @@ async function generateReport() {
   }
 }
 
-function startListening() {
-  if (!state.sessionStarted || state.isPaused || state.reportPhaseActive || state.isProcessing) return;
-  if (state.pendingSpeech) {
-    playAssistantSpeech(state.pendingSpeech, true);
-    return;
-  }
+const browserVoiceAdapter = {
+  preload: function() {
+    if (state.synthesis) state.synthesis.getVoices();
+  },
+  startListening: function() {
+    if (!state.sessionStarted || state.isPaused || state.reportPhaseActive || state.isProcessing) return;
+    if (state.pendingSpeech) {
+      playAssistantSpeech(state.pendingSpeech, true);
+      return;
+    }
 
-  if (state.isSpeaking) {
+    if (state.isSpeaking) {
+      this.cancelSpeech();
+      state.isSpeaking = false;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice recognition is not supported in this browser. Please use Chrome or Safari.');
+      return;
+    }
+
+    state.recognition = new SpeechRecognition();
+    state.recognition.continuous = true;
+    state.recognition.interimResults = true;
+    state.recognition.lang = 'en-US';
+
+    let finalTranscript = '';
+    let silenceTimer = null;
+
+    state.recognition.onstart = () => {
+      state.isListening = true;
+      document.getElementById('voice-btn').classList.add('listening');
+      document.getElementById('voice-visualizer').classList.add('active');
+      setVoiceStatus('listening');
+      setSessionCopy(
+        'Listening',
+        'Speak naturally. A short pause will send your response.',
+        'No tapping is needed while the session is active.'
+      );
+      animateBars(true);
+    };
+
+    state.recognition.onresult = (event) => {
+      clearTimeout(silenceTimer);
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        }
+      }
+
+      silenceTimer = setTimeout(() => {
+        if (finalTranscript.trim()) {
+          stopListening();
+          const text = finalTranscript.trim();
+          finalTranscript = '';
+          addMessage('user', text);
+          state.sessionData.transcript.push({ role: 'user', text });
+          setSessionCopy(
+            'Response captured',
+            'Your guide is now processing what you shared.',
+            'The next spoken prompt will start automatically.'
+          );
+          sendToAssistant(text);
+        }
+      }, 2500);
+    };
+
+    state.recognition.onerror = (event) => {
+      if (event.error !== 'no-speech') {
+        console.error('Recognition error:', event.error);
+      }
+      stopListening();
+    };
+
+    state.recognition.onend = () => {
+      if (state.isListening && !state.isPaused && !state.reportPhaseActive) {
+        state.recognition.start();
+      }
+    };
+
+    state.recognition.start();
+  },
+  stopListening: function(nextStatus) {
+    state.isListening = false;
+    if (state.recognition) {
+      state.recognition.stop();
+      state.recognition = null;
+    }
+    document.getElementById('voice-btn').classList.remove('listening');
+    document.getElementById('voice-visualizer').classList.remove('active');
+    animateBars(false);
+    setVoiceStatus(nextStatus || (state.isPaused ? 'paused' : 'idle'));
+  },
+  speak: function(text, onComplete) {
+    if (!state.synthesis) {
+      if (onComplete) onComplete();
+      return;
+    }
+    if (state.reportPhaseActive) {
+      if (onComplete) onComplete();
+      return;
+    }
+
     state.synthesis.cancel();
-    state.isSpeaking = false;
-  }
+    state.isSpeaking = true;
+    setVoiceStatus('speaking');
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert('Voice recognition is not supported in this browser. Please use Chrome or Safari.');
-    return;
-  }
+    const clean = text.replace(/[#*_~`]/g, '').replace(/\n+/g, ' ');
 
-  state.recognition = new SpeechRecognition();
-  state.recognition.continuous = true;
-  state.recognition.interimResults = true;
-  state.recognition.lang = 'en-US';
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.rate = 0.92;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
 
-  let finalTranscript = '';
-  let silenceTimer = null;
-
-  state.recognition.onstart = () => {
-    state.isListening = true;
-    document.getElementById('voice-btn').classList.add('listening');
-    document.getElementById('voice-visualizer').classList.add('active');
-    setVoiceStatus('listening');
-    setSessionCopy(
-      'Listening',
-      'Speak naturally. A short pause will send your response.',
-      'No tapping is needed while the session is active.'
+    const voices = state.synthesis.getVoices();
+    const preferred = voices.find(v =>
+      v.name.includes('Samantha') ||
+      v.name.includes('Karen') ||
+      v.name.includes('Daniel') ||
+      v.name.includes('Google US English')
     );
-    animateBars(true);
-  };
+    if (preferred) utterance.voice = preferred;
 
-  state.recognition.onresult = (event) => {
-    clearTimeout(silenceTimer);
-    let interim = '';
+    utterance.onend = () => {
+      state.isSpeaking = false;
+      if (!state.isListening && !state.isPaused) setVoiceStatus('idle');
+      if (onComplete) onComplete();
+    };
 
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript + ' ';
-      } else {
-        interim += event.results[i][0].transcript;
-      }
-    }
+    utterance.onerror = () => {
+      state.isSpeaking = false;
+      if (!state.isListening && !state.isPaused) setVoiceStatus('idle');
+      if (onComplete) onComplete();
+    };
 
-    // Auto-send after 1 second of silence
-    silenceTimer = setTimeout(() => {
-      if (finalTranscript.trim()) {
-        stopListening();
-        const text = finalTranscript.trim();
-        finalTranscript = '';
-        addMessage('user', text);
-        state.sessionData.transcript.push({ role: 'user', text });
-        setSessionCopy(
-          'Response captured',
-          'Your guide is now processing what you shared.',
-          'The next spoken prompt will start automatically.'
-        );
-        sendToAssistant(text);
-      }
-    }, 2500);
-  };
+    state.synthesis.speak(utterance);
+  },
+  cancelSpeech: function() {
+    if (state.synthesis) state.synthesis.cancel();
+  }
+};
 
-  state.recognition.onerror = (event) => {
-    if (event.error !== 'no-speech') {
-      console.error('Recognition error:', event.error);
-    }
-    stopListening();
-  };
+const realtimeVoiceAdapter = {
+  preload: function() {},
+  startListening: function() {
+    console.warn('Realtime voice adapter is not implemented yet. Falling back is expected while voiceMode is browser.');
+  },
+  stopListening: function(nextStatus) {
+    setVoiceStatus(nextStatus || (state.isPaused ? 'paused' : 'idle'));
+  },
+  speak: function(text, onComplete) {
+    if (onComplete) onComplete();
+  },
+  cancelSpeech: function() {}
+};
 
-  state.recognition.onend = () => {
-    if (state.isListening && !state.isPaused && !state.reportPhaseActive) {
-      state.recognition.start(); // Keep listening
-    }
-  };
+function getVoiceAdapter() {
+  return state.voiceMode === 'realtime' ? realtimeVoiceAdapter : browserVoiceAdapter;
+}
 
-  state.recognition.start();
+const voiceAdapter = {
+  preload: function() {
+    return getVoiceAdapter().preload();
+  },
+  startListening: function() {
+    return getVoiceAdapter().startListening();
+  },
+  stopListening: function(nextStatus) {
+    return getVoiceAdapter().stopListening(nextStatus);
+  },
+  speak: function(text, onComplete) {
+    return getVoiceAdapter().speak(text, onComplete);
+  },
+  cancelSpeech: function() {
+    return getVoiceAdapter().cancelSpeech();
+  }
+};
+
+function startListening() {
+  return voiceAdapter.startListening();
 }
 
 function stopListening(nextStatus) {
-  state.isListening = false;
-  if (state.recognition) {
-    state.recognition.stop();
-    state.recognition = null;
-  }
-  document.getElementById('voice-btn').classList.remove('listening');
-  document.getElementById('voice-visualizer').classList.remove('active');
-  animateBars(false);
-  setVoiceStatus(nextStatus || (state.isPaused ? 'paused' : 'idle'));
+  return voiceAdapter.stopListening(nextStatus);
 }
 
 // ══════════════════════════════════════
 // VOICE — TEXT TO SPEECH
 // ══════════════════════════════════════
 function speakText(text, onComplete) {
-  if (!state.synthesis) {
-    if (onComplete) onComplete();
-    return;
-  }
-  if (state.reportPhaseActive) { if (onComplete) onComplete(); return; }
-
-  state.synthesis.cancel();
-  state.isSpeaking = true;
-  setVoiceStatus('speaking');
-
-  // Clean text of markdown symbols
-  const clean = text.replace(/[#*_~`]/g, '').replace(/\n+/g, ' ');
-
-  const utterance = new SpeechSynthesisUtterance(clean);
-  utterance.rate = 0.92;
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;
-
-  const voices = state.synthesis.getVoices();
-  const preferred = voices.find(v =>
-    v.name.includes('Samantha') ||
-    v.name.includes('Karen') ||
-    v.name.includes('Daniel') ||
-    v.name.includes('Google US English')
-  );
-  if (preferred) utterance.voice = preferred;
-
-  utterance.onend = () => {
-    state.isSpeaking = false;
-    if (!state.isListening && !state.isPaused) setVoiceStatus('idle');
-    if (onComplete) onComplete();
-  };
-
-  utterance.onerror = () => {
-    state.isSpeaking = false;
-    if (!state.isListening && !state.isPaused) setVoiceStatus('idle');
-    if (onComplete) onComplete();
-  };
-
-  state.synthesis.speak(utterance);
+  return voiceAdapter.speak(text, onComplete);
 }
 
 // ══════════════════════════════════════
@@ -2635,7 +2689,7 @@ function speakText(text, onComplete) {
 // ══════════════════════════════════════
 async function endSession() {
   stopListening(state.isPaused ? 'paused' : 'thinking');
-  if (state.synthesis) state.synthesis.cancel();
+  voiceAdapter.cancelSpeech();
   setSessionCopy(
     'Closing your session',
     'We are checking whether your report is already available.',
@@ -2746,7 +2800,7 @@ function sendEmailJS(record) {
 }
 
 function showResultsScreen(record) {
-    if (state.synthesis) state.synthesis.cancel();
+    voiceAdapter.cancelSpeech();
     const name = record.clientName || '';
     const calendlyUrl = CONFIG.calendlyUrl || 'https://calendly.com/travisrobinsonlive/30min';
 
@@ -3232,7 +3286,7 @@ loadConfig();
 // Load voices for speech synthesis
 if (window.speechSynthesis) {
   window.speechSynthesis.onvoiceschanged = () => {
-    window.speechSynthesis.getVoices();
+    voiceAdapter.preload();
   };
 }
 
