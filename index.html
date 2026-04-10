@@ -239,7 +239,10 @@
   #screen-session {
     flex-direction: column;
     gap: 0;
-    background: var(--black);
+    background:
+      radial-gradient(circle at 50% 35%, rgba(201,169,110,0.08) 0%, transparent 26%),
+      radial-gradient(circle at 50% 15%, rgba(201,169,110,0.04) 0%, transparent 40%),
+      var(--black);
   }
 
   .session-header {
@@ -247,53 +250,142 @@
     top: 0;
     left: 0;
     right: 0;
-    padding: 1.5rem 2rem 1rem;
+    padding: 1.4rem 1.5rem 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid rgba(201,169,110,0.1);
-    background: var(--black);
+    background: linear-gradient(to bottom, rgba(10,10,10,0.94), rgba(10,10,10,0));
     z-index: 10;
   }
 
   .session-mark {
-    font-family: var(--font-display);
-    font-size: 0.7rem;
-    letter-spacing: 0.3em;
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    letter-spacing: 0.28em;
     color: var(--gold);
     text-transform: uppercase;
-    font-weight: 300;
+    font-weight: 400;
   }
 
   .session-type-badge {
     font-family: var(--font-body);
-    font-size: 0.6rem;
-    letter-spacing: 0.2em;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--black);
-    background: var(--gold);
-    padding: 0.3rem 0.8rem;
+    color: rgba(250,248,244,0.75);
+    border: 1px solid rgba(201,169,110,0.22);
+    background: rgba(201,169,110,0.06);
+    padding: 0.35rem 0.7rem;
     font-weight: 400;
   }
 
   .session-body {
     flex: 1;
     width: 100%;
-    max-width: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 1.5rem 10.5rem;
+    overflow: hidden;
+  }
+
+  .immersive-stage {
+    width: 100%;
+    max-width: 520px;
     display: flex;
     flex-direction: column;
-    padding: 6rem 0 10rem;
-    overflow-y: auto;
-    gap: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    text-align: center;
+  }
+
+  .session-presence {
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 4vw, 1.45rem);
+    font-weight: 300;
+    color: rgba(250,248,244,0.88);
+    line-height: 1.5;
+    max-width: 420px;
+    min-height: 4.5rem;
+  }
+
+  .session-presence strong {
+    color: var(--gold-light);
+    font-weight: 400;
+  }
+
+  .session-substatus {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    min-height: 1rem;
+  }
+
+  .session-orb-wrap {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0.25rem 0 0.5rem;
+  }
+
+  .session-orb {
+    width: 124px;
+    height: 124px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 35% 30%, rgba(232,213,163,0.24), rgba(201,169,110,0.10) 40%, rgba(201,169,110,0.03) 70%, transparent 72%),
+      rgba(201,169,110,0.06);
+    border: 1px solid rgba(201,169,110,0.18);
+    box-shadow: 0 0 34px rgba(201,169,110,0.08);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+
+  .session-orb-wrap::before,
+  .session-orb-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,169,110,0.08);
+    opacity: 0;
+    transform: scale(0.88);
+    transition: opacity 0.3s ease;
+  }
+
+  .session-orb-wrap.listening::before,
+  .session-orb-wrap.listening::after {
+    opacity: 1;
+    animation: ripple 1.8s ease infinite;
+  }
+
+  .session-orb-wrap.listening::after { animation-delay: 0.4s; }
+
+  .session-orb-wrap.listening .session-orb {
+    transform: scale(1.04);
+    box-shadow: 0 0 42px rgba(201,169,110,0.16);
+    border-color: rgba(201,169,110,0.32);
+  }
+
+  .session-orb-wrap.speaking .session-orb {
+    transform: scale(1.02);
+    box-shadow: 0 0 46px rgba(201,169,110,0.14);
   }
 
   .messages-container {
-    flex: 1;
-    padding: 1rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    overflow-y: auto;
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .message {
@@ -393,17 +485,17 @@
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 1.5rem 2rem 2.5rem;
-    background: linear-gradient(to top, var(--black) 70%, transparent);
+    padding: 1.2rem 1.5rem 2.5rem;
+    background: linear-gradient(to top, rgba(10,10,10,0.98) 68%, rgba(10,10,10,0));
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 0.9rem;
     z-index: 10;
   }
 
   .voice-status {
-    font-size: 0.65rem;
+    font-size: 0.64rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--muted);
@@ -413,7 +505,8 @@
   }
 
   .voice-status.listening { color: var(--gold); }
-  .voice-status.speaking { color: rgba(250,248,244,0.6); }
+  .voice-status.speaking { color: rgba(250,248,244,0.68); }
+  .voice-status.paused { color: rgba(250,248,244,0.45); }
 
   .voice-visualizer {
     display: flex;
@@ -435,63 +528,63 @@
   }
 
   .voice-btn {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    border: 1px solid var(--gold-border);
-    background: transparent;
-    cursor: pointer;
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .session-control-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    position: relative;
+    gap: 0.85rem;
   }
 
-  .voice-btn::before {
-    content: '';
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    border: 1px solid transparent;
-    transition: all 0.3s ease;
+  .session-control-btn {
+    min-width: 118px;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(201,169,110,0.22);
+    background: transparent;
+    color: var(--white);
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s ease;
   }
 
-  .voice-btn.listening {
+  .session-control-btn:hover {
+    background: rgba(201,169,110,0.08);
+    border-color: rgba(201,169,110,0.34);
+  }
+
+  .session-control-btn.primary {
+    color: var(--black);
+    background: var(--gold);
     border-color: var(--gold);
-    background: var(--gold-dim);
+    font-weight: 500;
   }
 
-  .voice-btn.listening::before {
-    border-color: rgba(201,169,110,0.2);
-    animation: ripple 1.5s ease infinite;
-  }
-
-  .voice-btn svg {
-    width: 24px;
-    height: 24px;
-    fill: none;
-    stroke: var(--gold);
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
+  .session-control-btn.primary:hover { background: var(--gold-light); }
 
   .session-end-btn {
     background: none;
     border: none;
     font-family: var(--font-body);
-    font-size: 0.6rem;
-    letter-spacing: 0.2em;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(250,248,244,0.25);
+    color: rgba(250,248,244,0.28);
     cursor: pointer;
-    padding: 0.5rem;
-    transition: color 0.3s ease, transform 0.4s ease;
-    transform: translateY(200%);
+    padding: 0.45rem;
+    transition: color 0.3s ease;
+    transform: none;
   }
+
   .session-end-btn:hover { color: rgba(250,248,244,0.5); }
-  .session-end-btn.reveal { transform: translateY(0); }
 
   .begin-session-btn {
     background: var(--gold);
@@ -508,8 +601,7 @@
     margin-bottom: 0.25rem;
   }
   .begin-session-btn:hover { opacity: 0.82; }
-
-  /* ── RESULTS SCREEN ── */
+/* ── RESULTS SCREEN ── */
   #screen-results {
     justify-content: flex-start;
     padding: 0;
@@ -1239,6 +1331,94 @@
       text-align: center;
     }
 
+
+    /* ── WELCOME SCREEN ── */
+    #screen-welcome { gap: 0; }
+
+    .welcome-shell {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0;
+      padding: 0 1rem;
+    }
+
+    .welcome-type {
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 400;
+      margin-bottom: 1.4rem;
+    }
+
+    .welcome-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08;
+      font-weight: 300;
+      color: var(--white);
+      margin-bottom: 1rem;
+    }
+
+    .welcome-title em { font-style: italic; color: var(--gold-light); }
+
+    .welcome-copy {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      line-height: 1.8;
+      color: rgba(250,248,244,0.78);
+      max-width: 460px;
+      margin-bottom: 2rem;
+    }
+
+    .welcome-guidance {
+      font-family: var(--font-body);
+      font-size: 0.68rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+
+    .welcome-actions {
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .welcome-btn {
+      width: 100%;
+      padding: 1rem 1.35rem;
+      border: 1px solid var(--gold-border);
+      background: transparent;
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .welcome-btn.primary {
+      background: var(--gold);
+      color: var(--black);
+      border-color: var(--gold);
+      font-weight: 500;
+    }
+
+    .welcome-btn:hover { opacity: 0.86; }
+
+
     /* ── RESULTS SCREEN UPDATES ── */
     .results-client-name {
       font-family: var(--font-display);
@@ -1439,15 +1619,46 @@
 </div>
 
 <!-- ══════════════════════════════════════
+     WELCOME SCREEN
+══════════════════════════════════════ -->
+<div id="screen-welcome" class="screen">
+  <div class="entry-bg"></div>
+  <div class="welcome-shell">
+    <div class="login-mark">Robinson Creative Group</div>
+    <div class="welcome-type" id="welcome-type-label">Founder Discovery Session</div>
+    <h2 class="welcome-title" id="welcome-title">Welcome.</h2>
+    <p class="welcome-copy" id="welcome-copy">
+      You’re about to begin a guided voice conversation designed to uncover the deeper story, patterns, and identity signals behind what you’re building.
+    </p>
+    <div class="welcome-guidance">Find a quiet place · Speak naturally · The session will guide you step by step</div>
+    <div class="welcome-actions">
+      <button class="welcome-btn primary" id="start-session-now-btn" onclick="enterVoiceRoom()">Start Session Now</button>
+      <button class="welcome-btn" onclick="showScreen('screen-capture')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
      SESSION SCREEN
 ══════════════════════════════════════ -->
 <div id="screen-session" class="screen">
   <div class="session-header">
     <span class="session-mark">RCG Discovery</span>
-    <span id="session-type-badge" class="session-type-badge">Founder</span>
+    <span id="session-type-badge" class="session-type-badge">Founder Session</span>
   </div>
 
   <div class="session-body" id="session-body">
+    <div class="immersive-stage">
+      <div class="session-orb-wrap" id="session-orb-wrap">
+        <div class="session-orb"></div>
+      </div>
+      <div class="session-presence" id="session-presence">
+        A guided voice conversation is about to begin.
+      </div>
+      <div class="session-substatus" id="session-substatus">
+        Stay present. The session will lead you.
+      </div>
+    </div>
     <div class="messages-container" id="messages-container">
       <!-- Messages render here -->
     </div>
@@ -1464,7 +1675,7 @@
       <div class="voice-bar" id="bar7"></div>
     </div>
     <div class="voice-status" id="voice-status"></div>
-    <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" style="display:none;">
+    <button class="voice-btn" id="voice-btn" onclick="toggleVoice()">
       <svg viewBox="0 0 24 24">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -1472,11 +1683,12 @@
         <line x1="8" y1="23" x2="16" y2="23"/>
       </svg>
     </button>
-    <button class="begin-session-btn" id="begin-session-btn" onclick="beginSession()" style="display:none;">
-      Begin My Session
-    </button>
+    <div class="session-control-row">
+      <button class="session-control-btn" id="pause-session-btn" onclick="togglePauseSession()">Pause</button>
+      <button class="session-control-btn primary" id="resume-session-btn" onclick="resumeSession()" style="display:none;">Resume</button>
+    </div>
     <button class="session-end-btn" id="session-end-btn" onclick="endSession()">
-      Complete Discovery Session
+      End Session
     </button>
   </div>
 </div>
@@ -1633,7 +1845,10 @@ let state = {
   sessions: [],
   isProcessing: false,
   reportTriggered: false,  // one-time lock: prevent double 'Generate Report Now'
-  activeRunId: null         // set by pollRun for debug logging
+  activeRunId: null,        // set by pollRun for debug logging
+  isPaused: false,
+  sessionStarted: false,
+  pendingAutoListen: false
 };
 
 // ══════════════════════════════════════
@@ -1654,13 +1869,37 @@ function showScreen(screenId) {
   }
 }
 
+function setPresence(title, subtitle) {
+  var main = document.getElementById('session-presence');
+  var sub = document.getElementById('session-substatus');
+  if (main) main.innerHTML = title || '';
+  if (sub) sub.textContent = subtitle || '';
+}
+
+function setOrbState(mode) {
+  var orb = document.getElementById('session-orb-wrap');
+  if (!orb) return;
+  orb.classList.remove('listening', 'speaking');
+  if (mode === 'listening' || mode === 'speaking') orb.classList.add(mode);
+}
+
 // ══════════════════════════════════════
 // SESSION START
 // ══════════════════════════════════════
 function startSession(type) {
   state.clientType = type;
+  state.clientName = null;
+  state.clientEmail = null;
+  state.threadId = null;
   state.messages = [];
   state.sessionData = { type, startTime: new Date().toISOString(), transcript: [] };
+  state.reportPhaseActive = false;
+  state.reportTriggered = false;
+  state._reportRetried = false;
+  state.isPaused = false;
+  state.sessionStarted = false;
+  state.pendingSpeech = null;
+  state.pendingAutoListen = false;
   document.getElementById('capture-name').value = '';
   document.getElementById('capture-email').value = '';
   document.getElementById('capture-error').textContent = '';
@@ -1682,33 +1921,86 @@ async function submitCapture() {
   state.clientEmail = email;
   state.sessionData.clientName = name;
   state.sessionData.clientEmail = email;
+  err.textContent = '';
 
   document.getElementById('session-type-badge').textContent =
     state.clientType === 'founder' ? 'Founder Session' : 'Artist Session';
 
-  showScreen('screen-session');
+  var welcomeType = state.clientType === 'founder' ? 'Founder Discovery Session' : 'Artist Discovery Session';
+  var welcomeTitle = 'Welcome, <em>' + name + '</em>.';
+  var welcomeCopy = state.clientType === 'founder'
+    ? 'You’re about to begin a guided voice conversation designed to uncover the deeper story, patterns, and identity signals behind what you’re building.'
+    : 'You’re about to begin a guided voice conversation designed to uncover the deeper story, emotional signals, and identity threads behind your artistry.';
+  document.getElementById('welcome-type-label').textContent = welcomeType;
+  document.getElementById('welcome-title').innerHTML = welcomeTitle;
+  document.getElementById('welcome-copy').textContent = welcomeCopy;
+
+  showScreen('screen-welcome');
+
+  if (!state.threadId) {
+    await createThread();
+  }
+
+  const welcomeSpeech = 'Welcome, ' + name + '. This is a guided voice session. When you start, I will lead the conversation and the session will move one step at a time. Speak naturally in your own words.';
+  if (!state.sessionStarted) {
+    speakText(welcomeSpeech, null);
+  }
+}
+
+function enterVoiceRoom() {
+  if (state.sessionStarted) return;
+  state.sessionStarted = true;
+  state.isPaused = false;
   document.getElementById('messages-container').innerHTML = '';
-
-  await createThread();
-
-  const onboardingText = 'Welcome, ' + name + ". I'm your S.O.U.L. Code Discovery Guide. Over the next few minutes I'll ask you a series of questions about your story, your journey, and what drives you. There are no right or wrong answers — just speak naturally and honestly. Each time I ask a question, tap the mic button and speak your answer. When you pause, I'll know you're done. When we've completed your discovery, tap the Complete Session button and your results will appear — and be sent to your email.";
-
-  addMessage('assistant', onboardingText);
-
-  // Speak the intro; user then clicks the 'Begin My Session' button
-  speakText(onboardingText, null);
-  document.getElementById('begin-session-btn').style.display = '';
-  document.getElementById('voice-status').textContent = '';
+  showScreen('screen-session');
+  setPresence('The conversation is beginning now.', 'Listen for the opening question.');
+  updatePauseControls();
+  beginSession();
 }
 
 function beginSession() {
-  document.getElementById('begin-session-btn').style.display = 'none';
-  document.getElementById('voice-btn').style.display = '';
   var name = state.clientName || '';
   var email = state.clientEmail || '';
-  var type = state.clientType === 'founder' ? 'Founder' : 'Artist';
   var openingMsg = "I'm ready to begin. My name is " + name + ' and my email is ' + email + '.';
   sendToAssistant(openingMsg);
+}
+
+function updatePauseControls() {
+  var pauseBtn = document.getElementById('pause-session-btn');
+  var resumeBtn = document.getElementById('resume-session-btn');
+  if (!pauseBtn || !resumeBtn) return;
+  if (state.isPaused) {
+    pauseBtn.style.display = 'none';
+    resumeBtn.style.display = '';
+    setPresence('Session paused.', 'Tap resume when you are ready to continue.');
+  } else {
+    pauseBtn.style.display = '';
+    resumeBtn.style.display = 'none';
+  }
+}
+
+function togglePauseSession() {
+  if (state.isPaused) return;
+  state.isPaused = true;
+  state.pendingAutoListen = false;
+  state.pendingSpeech = null;
+  if (state.synthesis) state.synthesis.cancel();
+  stopListening();
+  setVoiceStatus('paused');
+  updatePauseControls();
+}
+
+function resumeSession() {
+  state.isPaused = false;
+  updatePauseControls();
+  setPresence('Back in the conversation.', 'The guide will continue from here.');
+  if (state.pendingSpeech) {
+    const text = state.pendingSpeech;
+    state.pendingSpeech = null;
+    speakText(text, function() { startListening(); });
+    return;
+  }
+  startListening();
 }
 
 // ══════════════════════════════════════
@@ -1739,6 +2031,8 @@ async function sendToAssistant(userMessage) {
   if (vBtn) { vBtn.disabled = true; vBtn.style.opacity = '0.35'; }
 
   setVoiceStatus('thinking');
+  setPresence('Processing your response.', 'The guide is preparing the next step.');
+  setOrbState('');
   showThinking();
 
   try {
@@ -1887,9 +2181,9 @@ async function getLatestMessage() {
     state.reportPhaseActive = true;
     addMessage('assistant', text);
     state.sessionData.transcript.push({ role: 'assistant', text });
-    state.pendingSpeech = text;
-    setVoiceStatus('tap-to-hear');
     stopListening();
+    setPresence('The session is complete.', 'Your discovery summary is being generated.');
+    setVoiceStatus('thinking');
     setTimeout(function() { generateReport(); }, 1000);
     return;
   }
@@ -1996,11 +2290,16 @@ async function getLatestMessage() {
     return;
   }
   addMessage('assistant', text);
-  if (!state.reportPhaseActive) {
-    state.pendingSpeech = text;
-    setVoiceStatus('tap-to-hear');
-  }
   state.sessionData.transcript.push({ role: 'assistant', text });
+  if (!state.reportPhaseActive) {
+    setPresence('The guide is speaking.', 'Listen, then respond naturally.');
+    if (state.isPaused) {
+      state.pendingSpeech = text;
+      setVoiceStatus('paused');
+    } else {
+      speakText(text, function() { startListening(); });
+    }
+  }
 }
 
 // ══════════════════════════════════════
@@ -2081,8 +2380,10 @@ function parseReport(fullText) {
 // AUTO END SESSION
 // ══════════════════════════════════════
 async function autoEndSession(parsed) {
+  state.isPaused = false;
   stopListening();
   if (state.synthesis) state.synthesis.cancel();
+  setPresence('Ending your session.', 'Preparing your discovery summary.');
 
   const sessionRecord = {
       id: Date.now().toString(),
@@ -2180,8 +2481,7 @@ function toggleVoice() {
 }
 
 function startListening() {
-  // If there is pending speech, play it from within this user gesture, then auto-listen
-  if (state.reportPhaseActive) { state.pendingSpeech = null; return; }
+  if (state.reportPhaseActive || state.isPaused) { return; }
   if (state.pendingSpeech) {
     const text = state.pendingSpeech;
     state.pendingSpeech = null;
@@ -2189,16 +2489,18 @@ function startListening() {
     return;
   }
 
-  if (state.isSpeaking) {
-    state.synthesis.cancel();
-    state.isSpeaking = false;
+  if (state.isProcessing || state.isSpeaking) {
+    state.pendingAutoListen = true;
+    return;
   }
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    alert('Voice recognition is not supported in this browser. Please use Chrome or Safari.');
+    setPresence('Voice input is not available in this browser.', 'Use Chrome or Safari to continue.');
     return;
   }
+
+  if (state.recognition || state.isListening) return;
 
   state.recognition = new SpeechRecognition();
   state.recognition.continuous = true;
@@ -2210,35 +2512,33 @@ function startListening() {
 
   state.recognition.onstart = () => {
     state.isListening = true;
-    document.getElementById('voice-btn').classList.add('listening');
+    state.pendingAutoListen = false;
     document.getElementById('voice-visualizer').classList.add('active');
     setVoiceStatus('listening');
+    setPresence('I’m listening.', 'Speak naturally. The session will move when you pause.');
+    setOrbState('listening');
     animateBars(true);
   };
 
   state.recognition.onresult = (event) => {
     clearTimeout(silenceTimer);
-    let interim = '';
-
     for (let i = event.resultIndex; i < event.results.length; i++) {
       if (event.results[i].isFinal) {
         finalTranscript += event.results[i][0].transcript + ' ';
-      } else {
-        interim += event.results[i][0].transcript;
       }
     }
 
-    // Auto-send after 1 second of silence
     silenceTimer = setTimeout(() => {
       if (finalTranscript.trim()) {
         stopListening();
-        const text = finalTranscript.trim();
+        const spokenText = finalTranscript.trim();
         finalTranscript = '';
-        addMessage('user', text);
-        state.sessionData.transcript.push({ role: 'user', text });
-        sendToAssistant(text);
+        addMessage('user', spokenText);
+        state.sessionData.transcript.push({ role: 'user', text: spokenText });
+        setPresence('Your response is captured.', 'The guide is processing what you said.');
+        sendToAssistant(spokenText);
       }
-    }, 2500);
+    }, 1800);
   };
 
   state.recognition.onerror = (event) => {
@@ -2249,9 +2549,12 @@ function startListening() {
   };
 
   state.recognition.onend = () => {
-    if (state.isListening) {
-      state.recognition.start(); // Keep listening
-    }
+    if (silenceTimer) clearTimeout(silenceTimer);
+    if (state.recognition) state.recognition = null;
+    state.isListening = false;
+    document.getElementById('voice-visualizer').classList.remove('active');
+    animateBars(false);
+    setOrbState('');
   };
 
   state.recognition.start();
@@ -2260,31 +2563,38 @@ function startListening() {
 function stopListening() {
   state.isListening = false;
   if (state.recognition) {
-    state.recognition.stop();
+    try { state.recognition.stop(); } catch (e) {}
     state.recognition = null;
   }
-  document.getElementById('voice-btn').classList.remove('listening');
   document.getElementById('voice-visualizer').classList.remove('active');
   animateBars(false);
-  setVoiceStatus('idle');
+  setOrbState('');
+  if (!state.isProcessing && !state.isSpeaking && !state.reportPhaseActive && !state.isPaused) {
+    setVoiceStatus('idle');
+  }
 }
 
 // ══════════════════════════════════════
 // VOICE — TEXT TO SPEECH
 // ══════════════════════════════════════
 function speakText(text, onComplete) {
-  if (!state.synthesis) return;
+  if (!state.synthesis) { if (onComplete) onComplete(); return; }
   if (state.reportPhaseActive) { if (onComplete) onComplete(); return; }
+  if (state.isPaused) {
+    state.pendingSpeech = text;
+    if (onComplete) state.pendingAutoListen = true;
+    return;
+  }
 
   state.synthesis.cancel();
   state.isSpeaking = true;
   setVoiceStatus('speaking');
+  setOrbState('speaking');
 
-  // Clean text of markdown symbols
   const clean = text.replace(/[#*_~`]/g, '').replace(/\n+/g, ' ');
 
   const utterance = new SpeechSynthesisUtterance(clean);
-  utterance.rate = 0.92;
+  utterance.rate = 0.94;
   utterance.pitch = 1.0;
   utterance.volume = 1.0;
 
@@ -2299,7 +2609,20 @@ function speakText(text, onComplete) {
 
   utterance.onend = () => {
     state.isSpeaking = false;
-    setVoiceStatus('idle');
+    setOrbState('');
+    if (!state.reportPhaseActive && !state.isPaused) {
+      setVoiceStatus('idle');
+    }
+    if (onComplete) onComplete();
+    if (state.pendingAutoListen && !state.isPaused && !state.reportPhaseActive) {
+      state.pendingAutoListen = false;
+      startListening();
+    }
+  };
+
+  utterance.onerror = () => {
+    state.isSpeaking = false;
+    setOrbState('');
     if (onComplete) onComplete();
   };
 
@@ -2395,6 +2718,7 @@ function sendEmailJS(record) {
 }
 
 function showResultsScreen(record) {
+    if (state.synthesis) state.synthesis.cancel();
     const name = record.clientName || '';
     const calendlyUrl = CONFIG.calendlyUrl || 'https://calendly.com/travisrobinsonlive/30min';
 
@@ -2824,16 +3148,17 @@ function setVoiceStatus(status) {
   el.className = 'voice-status';
 
   const labels = {
-    idle: 'Tap the mic to speak',
-    'tap-to-hear': 'Tap the mic to hear response',
-    listening: 'Listening...',
-    thinking: 'Processing your response...',
-    speaking: 'Speaking — tap mic to interrupt'
+    idle: 'Waiting for the next moment',
+    listening: 'Listening',
+    thinking: 'Thinking',
+    speaking: 'Speaking',
+    paused: 'Paused'
   };
 
   el.textContent = labels[status] || '';
   if (status === 'listening') el.classList.add('listening');
   if (status === 'speaking') el.classList.add('speaking');
+  if (status === 'paused') el.classList.add('paused');
 }
 
 function animateBars(active) {
@@ -2851,6 +3176,9 @@ function animateBars(active) {
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+setPresence('A guided voice conversation is about to begin.', 'The session will guide you step by step.');
+setVoiceStatus('idle');
 
 // Load server config (Calendly URL etc)
 loadConfig();
