@@ -2634,17 +2634,350 @@ const browserVoiceAdapter = {
 };
 
 const realtimeVoiceAdapter = {
-  preload: function() {},
-  startListening: function() {
-    console.warn('Realtime voice adapter is not implemented yet. Falling back is expected while voiceMode is browser.');
+  connectionState: 'idle',
+  peerConnection: null,
+  dataChannel: null,
+  remoteAudioEl: null,
+  localStream: null,
+  fallbackReason: '',
+  lastError: '',
+  sessionInfo: null,
+  connectPromise: null,
+  pendingSpeakComplete: null,
+  preload: function() {
+    console.log('[RCG Realtime] adapter ready in realtime mode');
   },
-  stopListening: function(nextStatus) {
-    setVoiceStatus(nextStatus || (state.isPaused ? 'paused' : 'idle'));
+  ensureAudioElement: function() {
+    if (this.remoteAudioEl) return this.remoteAudioEl;
+    var audio = document.createElement('audio');
+    audio.autoplay = true;
+    audio.playsInline = true;
+    audio.style.display = 'none';
+    document.body.appendChild(audio);
+    this.remoteAudioEl = audio;
+    return audio;
   },
-  speak: function(text, onComplete) {
+  logDataChannelEvent: function(label, payload) {
+    if (payload) {
+      console.log('[RCG Realtime] ' + label, payload);
+    } else {
+      console.log('[RCG Realtime] ' + label);
+    }
+  },
+  fallbackToBrowser: function(reason, error) {
+    this.fallbackReason = reason || 'unknown';
+    this.lastError = error && error.message ? error.message : String(error || reason || 'unknown');
+    console.warn('[RCG Realtime] falling back to browser voice mode', {
+      reason: this.fallbackReason,
+      error: this.lastError
+    });
+    this.disconnect();
+    state.voiceMode = 'browser';
+    setVoiceStatus(state.isPaused ? 'paused' : 'idle');
+  },
+  getEphemeralKey: function(sessionPayload) {
+    var session = sessionPayload && sessionPayload.session ? sessionPayload.session : {};
+    var clientSecret = sessionPayload && sessionPayload.client_secret ? sessionPayload.client_secret : session.client_secret;
+    return clientSecret && clientSecret.value ? clientSecret.value : '';
+  },
+  connect: async function() {
+    if (this.connectionState === 'connected' && this.peerConnection) {
+      console.log('[RCG Realtime] reusing existing realtime connection');
+      return true;
+    }
+
+    if (this.connectPromise) {
+      return this.connectPromise;
+    }
+
+    var self = this;
+    this.connectPromise = (async function() {
+      self.connectionState = 'connecting';
+      self.lastError = '';
+      console.log('[RCG Realtime] fetching realtime session bootstrap');
+
+      try {
+        if (!window.RTCPeerConnection) {
+          throw new Error('WebRTC is not supported in this browser.');
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Microphone access is not available in this browser.');
+        }
+
+        const sessionResponse = await fetch('/.netlify/functions/realtime-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientType: state.clientType })
+        });
+
+        const sessionPayload = await sessionResponse.json();
+
+        if (!sessionResponse.ok || !sessionPayload.ok) {
+          console.error('[RCG Realtime] session bootstrap failed', sessionPayload);
+          throw new Error(sessionPayload.error || 'Realtime session bootstrap failed.');
+        }
+        console.log('[RCG Realtime] session bootstrap succeeded', sessionPayload);
+
+        const ephemeralKey = self.getEphemeralKey(sessionPayload);
+        if (!ephemeralKey) {
+          throw new Error('Realtime session did not return a client secret.');
+        }
+
+        const model = (sessionPayload.session && sessionPayload.session.session && sessionPayload.session.session.model)
+          || (sessionPayload.session && sessionPayload.session.model)
+          || sessionPayload.model
+          || 'gpt-realtime';
+        self.sessionInfo = sessionPayload;
+        console.log('[RCG Realtime] creating RTCPeerConnection', { model: model });
+        const pc = new RTCPeerConnection();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('[RCG Realtime] microphone stream acquired');
+
+        self.localStream = stream;
+        self.peerConnection = pc;
+        self.ensureAudioElement();
+
+        stream.getTracks().forEach(function(track) {
+          track.enabled = false;
+          pc.addTrack(track, stream);
+          console.log('[RCG Realtime] microphone track attached', {
+            kind: track.kind,
+            label: track.label || 'default'
+          });
+        });
+
+        pc.onconnectionstatechange = function() {
+          console.log('[RCG Realtime] peer connection state', pc.connectionState);
+        };
+        pc.oniceconnectionstatechange = function() {
+          console.log('[RCG Realtime] ice state', pc.iceConnectionState);
+        };
+        pc.ontrack = function(event) {
+          console.log('[RCG Realtime] remote audio track received');
+          if (self.remoteAudioEl) {
+            self.remoteAudioEl.srcObject = event.streams && event.streams[0] ? event.streams[0] : null;
+          }
+        };
+
+        const dataChannel = pc.createDataChannel('oai-events');
+        self.dataChannel = dataChannel;
+        dataChannel.onopen = function() {
+          self.logDataChannelEvent('data channel open');
+        };
+        dataChannel.onmessage = function(event) {
+          var parsed = null;
+          try {
+            parsed = JSON.parse(event.data);
+          } catch (e) {}
+          self.logDataChannelEvent('data channel message', parsed || event.data);
+          if (parsed) {
+            self.handleServerEvent(parsed);
+          }
+        };
+        dataChannel.onerror = function(event) {
+          console.error('[RCG Realtime] data channel error', event);
+        };
+        dataChannel.onclose = function() {
+          self.logDataChannelEvent('data channel closed');
+        };
+
+        const offer = await pc.createOffer({ offerToReceiveAudio: true });
+        await pc.setLocalDescription(offer);
+        console.log('[RCG Realtime] local SDP offer created');
+        console.log('[RCG Realtime] sending SDP offer to OpenAI realtime');
+
+        const sdpResponse = await fetch('https://api.openai.com/v1/realtime/calls', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + ephemeralKey,
+            'Content-Type': 'application/sdp'
+          },
+          body: offer.sdp
+        });
+
+        const answerSdp = await sdpResponse.text();
+        if (!sdpResponse.ok) {
+          console.error('[RCG Realtime] SDP exchange failed', answerSdp);
+          throw new Error(answerSdp || 'Realtime SDP exchange failed.');
+        }
+        console.log('[RCG Realtime] SDP exchange succeeded');
+
+        await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+        self.connectionState = 'connected';
+        console.log('[RCG Realtime] realtime connection established');
+        return true;
+      } catch (error) {
+        self.connectionState = 'error';
+        console.error('[RCG Realtime] connection failed', error);
+        self.fallbackToBrowser(error.message || 'connection_failed', error);
+        return false;
+      } finally {
+        self.connectPromise = null;
+      }
+    })();
+
+    return this.connectPromise;
+  },
+  disconnect: function() {
+    this.finishPendingSpeak();
+    if (this.dataChannel) {
+      try { this.dataChannel.close(); } catch (e) {}
+    }
+    this.dataChannel = null;
+
+    if (this.peerConnection) {
+      try { this.peerConnection.close(); } catch (e) {}
+    }
+    this.peerConnection = null;
+
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(function(track) { track.stop(); });
+    }
+    this.localStream = null;
+
+    if (this.remoteAudioEl) {
+      this.remoteAudioEl.srcObject = null;
+    }
+
+    this.sessionInfo = null;
+    this.connectionState = 'idle';
+  },
+  finishPendingSpeak: function() {
+    var onComplete = this.pendingSpeakComplete;
+    this.pendingSpeakComplete = null;
     if (onComplete) onComplete();
   },
-  cancelSpeech: function() {}
+  handleServerEvent: function(event) {
+    if (!event || !event.type) return;
+
+    if (event.type === 'session.created') {
+      console.log('[RCG Realtime] session created', event.session || event);
+      return;
+    }
+
+    if (event.type === 'response.created') {
+      console.log('[RCG Realtime] response created', event.response || event);
+      return;
+    }
+
+    if (event.type === 'response.done') {
+      console.log('[RCG Realtime] response done', event.response || event);
+      state.isSpeaking = false;
+      if (!state.isListening && !state.isPaused) setVoiceStatus('idle');
+      this.finishPendingSpeak();
+      return;
+    }
+
+    if (event.type === 'error') {
+      console.error('[RCG Realtime] server event error', event.error || event);
+      return;
+    }
+  },
+  setMicEnabled: function(enabled) {
+    if (!this.localStream) return;
+    this.localStream.getAudioTracks().forEach(function(track) {
+      track.enabled = enabled;
+    });
+    console.log('[RCG Realtime] microphone ' + (enabled ? 'enabled' : 'disabled'));
+  },
+  sendEvent: function(event) {
+    if (!this.dataChannel || this.dataChannel.readyState !== 'open') {
+      throw new Error('Realtime data channel is not open.');
+    }
+    var payload = JSON.stringify(event);
+    this.dataChannel.send(payload);
+    this.logDataChannelEvent('sent event', payload);
+  },
+  startListening: async function() {
+    if (!state.sessionStarted || state.isPaused || state.reportPhaseActive || state.isProcessing) return;
+    if (state.pendingSpeech) {
+      playAssistantSpeech(state.pendingSpeech, true);
+      return;
+    }
+
+    console.log('[RCG Realtime] startListening requested in realtime mode');
+    var connected = await this.connect();
+    if (!connected || state.voiceMode !== 'realtime') {
+      console.warn('[RCG Realtime] realtime startListening failed; delegating to browser voice mode', {
+        reason: this.fallbackReason || 'connect_failed'
+      });
+      return browserVoiceAdapter.startListening();
+    }
+
+    try {
+      this.setMicEnabled(true);
+      state.isListening = true;
+      document.getElementById('voice-btn').classList.add('listening');
+      document.getElementById('voice-visualizer').classList.add('active');
+      animateBars(true);
+      setVoiceStatus('listening');
+      console.log('[RCG Realtime] listening started');
+    } catch (error) {
+      console.error('[RCG Realtime] startListening failed', error);
+      this.fallbackToBrowser('start_listening_failed', error);
+      return browserVoiceAdapter.startListening();
+    }
+  },
+  stopListening: function(nextStatus) {
+    state.isListening = false;
+    this.setMicEnabled(false);
+    document.getElementById('voice-btn').classList.remove('listening');
+    document.getElementById('voice-visualizer').classList.remove('active');
+    animateBars(false);
+    console.log('[RCG Realtime] listening stopped');
+    setVoiceStatus(nextStatus || (state.isPaused ? 'paused' : 'idle'));
+  },
+  speak: async function(text, onComplete) {
+    if (state.reportPhaseActive) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    try {
+      console.log('[RCG Realtime] speak requested in realtime mode');
+      var connected = await this.connect();
+      if (connected && state.voiceMode === 'realtime' && this.dataChannel && this.dataChannel.readyState === 'open') {
+        state.isSpeaking = true;
+        setVoiceStatus('speaking');
+        console.log('[RCG Realtime] speak requested', text);
+        this.pendingSpeakComplete = onComplete || null;
+        this.sendEvent({
+          type: 'conversation.item.create',
+          item: {
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: text
+              }
+            ]
+          }
+        });
+        this.sendEvent({
+          type: 'response.create',
+          response: {
+            modalities: ['audio'],
+            instructions: 'Speak this message to the user in a warm, concise voice: ' + text
+          }
+        });
+        return;
+      }
+    } catch (error) {
+      console.error('[RCG Realtime] speak failed', error);
+      this.fallbackToBrowser('speak_failed', error);
+    }
+
+    console.warn('[RCG Realtime] realtime speak unavailable; falling back to browser speech', {
+      reason: this.fallbackReason || 'data_channel_unavailable'
+    });
+    return browserVoiceAdapter.speak(text, onComplete);
+  },
+  cancelSpeech: function() {
+    state.isSpeaking = false;
+    console.log('[RCG Realtime] cancelSpeech');
+    browserVoiceAdapter.cancelSpeech();
+  }
 };
 
 function getVoiceAdapter() {
